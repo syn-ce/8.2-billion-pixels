@@ -32,9 +32,12 @@ const fetchSections = async () => {
     return (await fetch('http://localhost:5000/sections')).json()
 }
 
-type Point2D = { x: number; y: number }
 type Section = { topLeft: [number, number]; botRight: [number, number] }
 const sections: Section[] = await fetchSections()
+const WIDTH = sections[sections.length - 1].botRight[0] + 1
+const HEIGHT = sections[sections.length - 1].botRight[1] + 1
+console.log(WIDTH)
+console.log(HEIGHT)
 
 function randomColor() {
     let chars = '0123456789ABCDEF'
@@ -45,32 +48,73 @@ function randomColor() {
     return color
 }
 
+// Start with canvas centered in middle of screen
+
 const colorSections = (
     sections: Section[],
     context: CanvasRenderingContext2D
 ) => {
     for (let i = 0; i < sections.length; i++) {
-        const section = sections[i]
+        const [topLeft, botRight] = toCanvasCoords(
+            [sections[i].topLeft, sections[i].botRight],
+            canvasState
+        )
         context.fillStyle = randomColor()
         context.fillRect(
-            section.topLeft[0],
-            section.topLeft[1],
-            section.botRight[0] - section.topLeft[0] + 1,
-            section.botRight[1] - section.topLeft[1] + 1
+            topLeft[0],
+            topLeft[1],
+            botRight[0] - topLeft[0] + 1,
+            botRight[1] - topLeft[1] + 1
         )
     }
 }
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
-canvas.width = 1000
-canvas.height = 1000
+console.log(screen.width)
+canvas.width = window.innerWidth * devicePixelRatio
+canvas.height = window.innerHeight * devicePixelRatio
 const context = canvas.getContext('2d')!
-const canvasZoomWrapper = <HTMLDivElement>(
-    document.getElementById('canvas-zoom-wrapper')
-)
-const canvasPanWrapper = <HTMLDivElement>(
-    document.getElementById('canvas-pan-wrapper')
-)
+//const canvasZoomWrapper = <HTMLDivElement>(
+//    document.getElementById('canvas-zoom-wrapper')
+//)
+//const canvasPanWrapper = <HTMLDivElement>(
+//    document.getElementById('canvas-pan-wrapper')
+//)
+type CanvasState = {
+    canvas: HTMLCanvasElement
+    logicalCenter: [number, number]
+    logicalZoom: number
+}
+
+const canvasState: CanvasState = {
+    canvas: canvas,
+    logicalCenter: [WIDTH / 2, HEIGHT / 2],
+    logicalZoom: 1,
+}
+
+const toCanvasCoords = (
+    points: [number, number][],
+    canvasState: CanvasState
+) => {
+    const ps: [number, number][] = []
+    for (const point of points) {
+        ps.push([
+            point[0] -
+                canvasState.logicalCenter[0] +
+                canvasState.canvas.width / 2,
+            point[1] -
+                canvasState.logicalCenter[1] +
+                canvasState.canvas.height / 2,
+        ])
+    }
+    return ps
+}
+
+window.onresize = (evt) => {
+    canvas.width = window.innerWidth * devicePixelRatio
+    canvas.height = window.innerHeight * devicePixelRatio
+    colorSections(sections, context)
+}
 
 context.fillStyle = 'red'
 context.fillRect(0, 0, canvas.width, canvas.height)
@@ -129,9 +173,9 @@ const zoomWrapperState: ZoomState = {
 
 const zoomWrapperTransform = [1, 0, 0, 1, 0, 0]
 
-canvas.style.transform = `scale(${zoomWrapperState.maxZoom})`
-applyZoom(zoomWrapperTransform, zoomWrapperState.curScale)
-setTransform(canvasZoomWrapper, zoomWrapperTransform)
+//canvas.style.transform = `scale(${zoomWrapperState.maxZoom})`
+//applyZoom(zoomWrapperTransform, zoomWrapperState.curScale)
+//setTransform(canvasZoomWrapper, zoomWrapperTransform)
 
 const addPanToCanvas = (
     panState: PanState,
@@ -166,66 +210,66 @@ const addPanToCanvas = (
     }
 }
 
-addPanToCanvas(panWrapperState, panWrapperTransform, canvas, canvasPanWrapper)
+//addPanToCanvas(panWrapperState, panWrapperTransform, canvas, canvasPanWrapper)
 
 // TODO: fix the zoom, i.e. keep the pixel under the cursor
-canvas.onwheel = (evt) => {
-    //console.log(evt.x, evt.y)
-    // Move center of canvas there
-    const canvasRect = canvas.getBoundingClientRect()
-    //console.log('panWrapperRect')
-    //console.log(canvasRect)
-
-    const relCursorPos = {
-        x: evt.x - canvasRect.left,
-        y: evt.y - canvasRect.top,
-    }
-    console.log(`zoomCenter = ${relCursorPos.x}, ${relCursorPos.y}`)
-
-    const curCenter = {
-        x: canvas.width / 2,
-        y: canvas.height / 2,
-    }
-    const centerDiff = {
-        x: (1 / zoomWrapperState.curScale) * (relCursorPos.x - curCenter.x),
-        y: (1 / zoomWrapperState.curScale) * (relCursorPos.y - curCenter.y),
-    }
-
-    // 1. Center zoom-point
-    console.log(centerDiff)
-
-    //console.log(`transform before = ${zoomWrapperTransform}`)
-
-    //applyTranslate(zoomWrapperTransform, centerDiff.x, centerDiff.y)
-    // 2. Zoom
-    const oldScale = zoomWrapperState.curScale
-    if (evt.deltaY > 0) zoomWrapperState.curScale -= 0.01
-    else zoomWrapperState.curScale += 0.01
-    zoomWrapperState.curScale = Math.max(
-        zoomWrapperState.invMinZoom,
-        zoomWrapperState.curScale
-    )
-    zoomWrapperState.curScale = Math.min(
-        zoomWrapperState.invMaxZoom,
-        zoomWrapperState.curScale
-    )
-    //console.log(`curScale = ${zoomWrapperState.curScale}`)
-    //console.log(oldScale / zoomWrapperState.curScale)
-    applyZoom(zoomWrapperTransform, zoomWrapperState.curScale / oldScale)
-    // 3. Move back
-    //applyTranslate(zoomWrapperTransform, -centerDiff.x, -centerDiff.y)
-    //console.log(`transform after = ${zoomWrapperTransform}`)
-    setTransform(canvasZoomWrapper, zoomWrapperTransform)
-    //console.log(evt.deltaY)
-
-    //canvasPanWrapper.style.transform = `${transformState.curTransform}`
-    //curTransform.translate.x += zoomCenter.x - curCenter.x
-    //curTransform.translate.y += zoomCenter.y - curCenter.y
-    //canvasZoomWrapper.style.transformStyle
-    //canvasZoomWrapper.style.transform = `translate(${curTransform.translate.x}px ${curTransform.translate.y}px) scale(${curTransform.scale})`
-
-    console.log(curCenter)
-}
+//canvas.onwheel = (evt) => {
+//    //console.log(evt.x, evt.y)
+//    // Move center of canvas there
+//    const canvasRect = canvas.getBoundingClientRect()
+//    //console.log('panWrapperRect')
+//    //console.log(canvasRect)
+//
+//    const relCursorPos = {
+//        x: evt.x - canvasRect.left,
+//        y: evt.y - canvasRect.top,
+//    }
+//    console.log(`zoomCenter = ${relCursorPos.x}, ${relCursorPos.y}`)
+//
+//    const curCenter = {
+//        x: canvas.width / 2,
+//        y: canvas.height / 2,
+//    }
+//    const centerDiff = {
+//        x: (1 / zoomWrapperState.curScale) * (relCursorPos.x - curCenter.x),
+//        y: (1 / zoomWrapperState.curScale) * (relCursorPos.y - curCenter.y),
+//    }
+//
+//    // 1. Center zoom-point
+//    console.log(centerDiff)
+//
+//    //console.log(`transform before = ${zoomWrapperTransform}`)
+//
+//    //applyTranslate(zoomWrapperTransform, centerDiff.x, centerDiff.y)
+//    // 2. Zoom
+//    const oldScale = zoomWrapperState.curScale
+//    if (evt.deltaY > 0) zoomWrapperState.curScale -= 0.01
+//    else zoomWrapperState.curScale += 0.01
+//    zoomWrapperState.curScale = Math.max(
+//        zoomWrapperState.invMinZoom,
+//        zoomWrapperState.curScale
+//    )
+//    zoomWrapperState.curScale = Math.min(
+//        zoomWrapperState.invMaxZoom,
+//        zoomWrapperState.curScale
+//    )
+//    //console.log(`curScale = ${zoomWrapperState.curScale}`)
+//    //console.log(oldScale / zoomWrapperState.curScale)
+//    applyZoom(zoomWrapperTransform, zoomWrapperState.curScale / oldScale)
+//    // 3. Move back
+//    //applyTranslate(zoomWrapperTransform, -centerDiff.x, -centerDiff.y)
+//    //console.log(`transform after = ${zoomWrapperTransform}`)
+//    setTransform(canvasZoomWrapper, zoomWrapperTransform)
+//    //console.log(evt.deltaY)
+//
+//    //canvasPanWrapper.style.transform = `${transformState.curTransform}`
+//    //curTransform.translate.x += zoomCenter.x - curCenter.x
+//    //curTransform.translate.y += zoomCenter.y - curCenter.y
+//    //canvasZoomWrapper.style.transformStyle
+//    //canvasZoomWrapper.style.transform = `translate(${curTransform.translate.x}px ${curTransform.translate.y}px) scale(${curTransform.scale})`
+//
+//    console.log(curCenter)
+//}
 
 // Current aspect ratio
 
