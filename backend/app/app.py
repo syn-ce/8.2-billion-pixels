@@ -5,16 +5,28 @@ from flask_cors import CORS, cross_origin
 import redis
 import sched, time
 
+from sections import Section, Point2D, split_bits
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 redis = Redis(host='redis', port=6379)
+# A billion bits.
+NR_BITS = 1000000
+# Aspect ratio of 16:10
+ASP_RATIO_REL_W = 10
+ASP_RATIO_REL_H = 10
+
+sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 10, 10)
+print(sections)
+print(len(sections))
 
 bitfield = 'bitfield'
 redis.set(bitfield, "this is some random text")
-# A billion bits. TODO: split these up into sections
-redis.setbit(bitfield, 999999999, 1)
+redis.setbit(bitfield, NR_BITS - 1, 1)
+
+# The sections are going to stored in redis individually.
 
 #scheduler = sched.scheduler(time.time, time.sleep)
 #scheduler.enter(1, 1, update_clients, (scheduler, socketio, redis))
@@ -27,6 +39,11 @@ redis.setbit(bitfield, 999999999, 1)
 def get_img():
     app.logger.info(len(redis.get(bitfield)))
     return redis.get(bitfield)
+
+@cross_origin
+@app.route('/sections')
+def get_sections():
+    return sections
 
 @socketio.on('connect')
 def handle_connect():

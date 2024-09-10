@@ -14,10 +14,56 @@ socket.on('poll', (data) => {
     socket.emit('active')
 })
 
+// Canvas data
+const fetchBits = async () => {
+    const buffer = await (
+        await fetch('http://localhost:5000/bits')
+    ).arrayBuffer()
+    return new Uint8Array(buffer)
+}
+const allBits = await fetchBits()
+console.log(`nr of bits = ${allBits.length * 8}`)
+
+// Determine all sections which we need to fetch
+//const determineRequiredSections = (canvas: HTMLCanvasElement) => {
+//    canvas.
+//}
+const fetchSections = async () => {
+    return (await fetch('http://localhost:5000/sections')).json()
+}
+
+type Point2D = { x: number; y: number }
+type Section = { topLeft: [number, number]; botRight: [number, number] }
+const sections: Section[] = await fetchSections()
+
+function randomColor() {
+    let chars = '0123456789ABCDEF'
+    let color = '#'
+    for (var i = 0; i < 6; i++) {
+        color += chars[Math.floor(Math.random() * chars.length)]
+    }
+    return color
+}
+
+const colorSections = (
+    sections: Section[],
+    context: CanvasRenderingContext2D
+) => {
+    for (let i = 0; i < sections.length; i++) {
+        const section = sections[i]
+        context.fillStyle = randomColor()
+        context.fillRect(
+            section.topLeft[0],
+            section.topLeft[1],
+            section.botRight[0] - section.topLeft[0] + 1,
+            section.botRight[1] - section.topLeft[1] + 1
+        )
+    }
+}
+
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
-// The goal size would be 40000x25000, i.e. 100x the area as 4000x2500. This won't be possible with a simple naive canvas.
-canvas.width = 4000
-canvas.height = 2500
+canvas.width = 1000
+canvas.height = 1000
 const context = canvas.getContext('2d')!
 const canvasZoomWrapper = <HTMLDivElement>(
     document.getElementById('canvas-zoom-wrapper')
@@ -204,7 +250,9 @@ const fetchImageData = async (context: CanvasRenderingContext2D) => {
     context.putImageData(imgData, 0, 0)
 }
 
-await fetchImageData(context)
+//await fetchImageData(context)
+
+colorSections(sections, context)
 
 //window.addEventListener('resize', (_) => {
 //    //canvas.width = window.innerWidth * window.devicePixelRatio
