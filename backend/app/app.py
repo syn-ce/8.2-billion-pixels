@@ -1,0 +1,48 @@
+from flask import Flask
+from redis import Redis
+from flask_socketio import SocketIO
+from flask_cors import CORS, cross_origin
+import redis
+import sched, time
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+redis = Redis(host='redis', port=6379)
+
+bitfield = 'bitfield'
+redis.set(bitfield, "this is some random text")
+# A billion bits. TODO: split these up into sections
+redis.setbit(bitfield, 999999999, 1)
+
+#scheduler = sched.scheduler(time.time, time.sleep)
+#scheduler.enter(1, 1, update_clients, (scheduler, socketio, redis))
+#def update_clients(scheduler: sched.scheduler, socketio: SocketIO, redis: Redis):
+#    scheduler.enter(1, 1, update_clients, (scheduler, socketio, redis))
+#    socketio.emit()
+
+@cross_origin
+@app.route('/bits')
+def get_img():
+    app.logger.info(len(redis.get(bitfield)))
+    return redis.get(bitfield)
+
+@socketio.on('connect')
+def handle_connect():
+    app.logger.info(f'Client connected {redis.incr("clients", 0) + 1}')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    app.logger.info(f'Client disconnected {redis.decr("clients", 0) - 1}')
+
+@socketio.on('message')
+def handle_message():
+    app.logger.info('received message: ')
+
+@socketio.on("active")
+def handle_active():
+    pass
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', debug=True, allow_unsafe_werkzeug=True)
