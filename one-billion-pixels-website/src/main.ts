@@ -48,19 +48,82 @@ function randomColor() {
     return color
 }
 
-// Start with canvas centered in middle of screen
+const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
+console.log(screen.width)
+canvas.width = window.innerWidth //* devicePixelRatio
+canvas.height = window.innerHeight //* devicePixelRatio
+const context = canvas.getContext('2d')!
 
-const colorSections = (
-    sections: Section[],
-    context: CanvasRenderingContext2D
+type CanvasState = {
+    canvas: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+    logicalCenter: [number, number]
+    logicalZoom: number
+    logicalTransform: number[]
+    panning: boolean
+    prevPanMousePos: [number, number]
+}
+
+// Start with canvas centered in middle of screen
+const canvasState: CanvasState = {
+    canvas: canvas,
+    ctx: context,
+    logicalCenter: [WIDTH / 2, HEIGHT / 2],
+    logicalZoom: 1,
+    logicalTransform: [1, 0, 0, 1, 0, 0],
+    panning: false,
+    prevPanMousePos: [0, 0],
+}
+
+const transformSectionsToCanvasCoords = (
+    canvasState: CanvasState,
+    sections: Section[]
 ) => {
+    const transformedSections: Section[] = []
     for (let i = 0; i < sections.length; i++) {
-        const [topLeft, botRight] = toCanvasCoords(
-            [sections[i].topLeft, sections[i].botRight],
-            canvasState
+        const section = sections[i]
+        // First apply logical transform (i.e. pan, zoom)
+        // Then transform so that logical center is displayed in the middle of the screen
+        const [topLeft, botRight] = applyTransform(
+            applyTransform(
+                [section.topLeft, section.botRight],
+                canvasState.logicalTransform
+            ),
+            [
+                1,
+                0,
+                0,
+                1,
+                -canvasState.logicalCenter[0] + canvasState.canvas.width / 2,
+                -canvasState.logicalCenter[1] + canvasState.canvas.height / 2,
+            ]
         )
-        context.fillStyle = randomColor()
-        context.fillRect(
+        transformedSections[i] = { topLeft, botRight }
+    }
+    return transformedSections
+}
+
+const drawSections = (canvasState: CanvasState, sections: Section[]) => {
+    const transformedSections: Section[] = transformSectionsToCanvasCoords(
+        canvasState,
+        sections
+    )
+
+    canvasState.ctx.clearRect(
+        0,
+        0,
+        canvasState.canvas.width,
+        canvasState.canvas.height
+    )
+
+    for (let i = 0; i < transformedSections.length; i++) {
+        const section = transformedSections[i]
+        const [topLeft, botRight] = [section.topLeft, section.botRight]
+        canvasState.ctx.fillStyle = `rgb(
+        ${Math.floor(255 - (255 / transformedSections.length) * i)}
+        ${Math.floor(255 - (255 / transformedSections.length) * i)}
+        0)` // randomColor()
+        canvasState.ctx.fillRect(
             topLeft[0],
             topLeft[1],
             botRight[0] - topLeft[0] + 1,
@@ -69,43 +132,14 @@ const colorSections = (
     }
 }
 
-const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
-console.log(screen.width)
-canvas.width = window.innerWidth * devicePixelRatio
-canvas.height = window.innerHeight * devicePixelRatio
-const context = canvas.getContext('2d')!
-//const canvasZoomWrapper = <HTMLDivElement>(
-//    document.getElementById('canvas-zoom-wrapper')
-//)
-//const canvasPanWrapper = <HTMLDivElement>(
-//    document.getElementById('canvas-pan-wrapper')
-//)
-type CanvasState = {
-    canvas: HTMLCanvasElement
-    logicalCenter: [number, number]
-    logicalZoom: number
-}
-
-const canvasState: CanvasState = {
-    canvas: canvas,
-    logicalCenter: [WIDTH / 2, HEIGHT / 2],
-    logicalZoom: 1,
-}
-
-const toCanvasCoords = (
-    points: [number, number][],
-    canvasState: CanvasState
-) => {
+const applyTransform = (points: [number, number][], transform: number[]) => {
     const ps: [number, number][] = []
     for (const point of points) {
-        ps.push([
-            point[0] -
-                canvasState.logicalCenter[0] +
-                canvasState.canvas.width / 2,
-            point[1] -
-                canvasState.logicalCenter[1] +
-                canvasState.canvas.height / 2,
-        ])
+        const x =
+            point[0] * transform[0] + point[1] * transform[2] + transform[4]
+        const y =
+            point[0] * transform[1] + point[1] * transform[3] + transform[5]
+        ps.push([x, y])
     }
     return ps
 }
@@ -113,7 +147,7 @@ const toCanvasCoords = (
 window.onresize = (evt) => {
     canvas.width = window.innerWidth * devicePixelRatio
     canvas.height = window.innerHeight * devicePixelRatio
-    colorSections(sections, context)
+    drawSections(canvasState, sections)
 }
 
 context.fillStyle = 'red'
@@ -123,94 +157,49 @@ context.fillRect(0, 0, canvas.width, canvas.height)
 
 // Add scale
 
-const applyTranslate = (curTransform: number[], x: number, y: number) => {
-    curTransform[4] += curTransform[0] * x + curTransform[2] * y
-    curTransform[5] += curTransform[1] * x + curTransform[3] * y
+const applyTranslate = (transform: number[], x: number, y: number) => {
+    transform[4] += transform[0] * x + transform[2] * y
+    transform[5] += transform[1] * x + transform[3] * y
 }
 
-const applyZoom = (curTransform: number[], zoom: number) => {
-    curTransform[0] *= zoom
-    curTransform[1] *= zoom
-    curTransform[2] *= zoom
-    curTransform[3] *= zoom
+const applyZoom = (transform: number[], zoom: number) => {
+    transform[0] *= zoom
+    transform[1] *= zoom
+    transform[2] *= zoom
+    transform[3] *= zoom
 }
 
-const setTransform = (el: HTMLElement, transform: number[]) => {
-    el.style.transform = `matrix(${transform.toString()})`
-}
-
-// The view port is equal to the view window
-
-type PanState = {
-    isPanning: boolean
-    prevCanvasPos: { x: number; y: number }
-}
-
-type ZoomState = {
-    minZoom: number
-    maxZoom: number
-    invMinZoom: number
-    invMaxZoom: number
-    curScale: number
-}
-
-const panWrapperTransform = [1, 0, 0, 1, 0, 0]
-
-const panWrapperState: PanState = {
-    isPanning: false,
-    prevCanvasPos: { x: 0, y: 0 },
-}
-
-//const maxZoom = 50
-
-const zoomWrapperState: ZoomState = {
-    maxZoom: 50,
-    minZoom: 1,
-    invMinZoom: 1 / 50,
-    invMaxZoom: 1,
-    curScale: 1 / 50,
-}
-
-const zoomWrapperTransform = [1, 0, 0, 1, 0, 0]
-
-//canvas.style.transform = `scale(${zoomWrapperState.maxZoom})`
-//applyZoom(zoomWrapperTransform, zoomWrapperState.curScale)
-//setTransform(canvasZoomWrapper, zoomWrapperTransform)
-
-const addPanToCanvas = (
-    panState: PanState,
-    transform: number[],
-    canvas: HTMLCanvasElement,
-    canvasPanWrapper: HTMLDivElement
-) => {
+const addPanToCanvas = (canvasState: CanvasState) => {
+    const canvas = canvasState.canvas
     canvas.onmousedown = (evt) => {
-        panState.isPanning = true
-        panState.prevCanvasPos = { x: evt.x, y: evt.y }
+        canvasState.panning = true
+        canvasState.prevPanMousePos = [evt.x, evt.y]
     }
     canvas.onmousemove = (evt) => {
-        if (!panState.isPanning) return
+        if (!canvasState.panning) return
         //panning.curTranslate.x +=
         //panning.curTranslate.y +=
         applyTranslate(
-            transform,
-            evt.x - panState.prevCanvasPos.x,
-            evt.y - panState.prevCanvasPos.y
+            canvasState.logicalTransform,
+            evt.x - canvasState.prevPanMousePos[0],
+            evt.y - canvasState.prevPanMousePos[1]
         )
-        panState.prevCanvasPos = { x: evt.x, y: evt.y }
+        canvasState.prevPanMousePos = [evt.x, evt.y]
         //curTransform.translate = panning.curTranslate
-        setTransform(canvasPanWrapper, transform)
+        // TODO: refactor global sections here
+        drawSections(canvasState, sections)
         //canvasPanWrapper.style.transform = `${transformState.curTransform}`
         //canvasPanWrapper.style.transform = `translate(${curTransform.translate.x}px ${curTransform.translate.y}px) scale(${curTransform.scale})`
     }
     canvas.onmouseup = (evt) => {
-        panState.isPanning = false
+        canvasState.panning = false
     }
     canvas.onmouseleave = (evt) => {
-        panState.isPanning = false
+        canvasState.panning = false
     }
 }
 
-//addPanToCanvas(panWrapperState, panWrapperTransform, canvas, canvasPanWrapper)
+addPanToCanvas(canvasState)
 
 // TODO: fix the zoom, i.e. keep the pixel under the cursor
 //canvas.onwheel = (evt) => {
@@ -296,7 +285,7 @@ const fetchImageData = async (context: CanvasRenderingContext2D) => {
 
 //await fetchImageData(context)
 
-colorSections(sections, context)
+drawSections(canvasState, sections)
 
 //window.addEventListener('resize', (_) => {
 //    //canvas.width = window.innerWidth * window.devicePixelRatio
