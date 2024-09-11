@@ -14,7 +14,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 redis = Redis(host='redis', port=6379)
 # A billion bits.
 NR_BITS = 1000000
-# Aspect ratio of 16:10
+# Aspect ratio of W:H
 ASP_RATIO_REL_W = 10
 ASP_RATIO_REL_H = 10
 
