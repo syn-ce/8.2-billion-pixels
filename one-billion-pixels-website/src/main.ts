@@ -109,7 +109,7 @@ type CanvasState = {
 const canvasState: CanvasState = {
     canvas: canvas,
     ctx: context,
-    virtualCenter: [500, 500], // Point in virtual space which is initially centered in screen space
+    virtualCenter: [250, 250], // Point in virtual space which is initially centered in screen space
     scale: 1,
     panning: false,
     prevPanMousePos: [0, 0],

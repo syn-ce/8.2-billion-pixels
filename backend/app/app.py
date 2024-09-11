@@ -13,13 +13,13 @@ app.config['SECRET_KEY'] = 'secret!'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 redis = Redis(host='redis', port=6379)
-# A billion bits.
-NR_BITS = 1000000
+# A billion bits (well, not during development).
+NR_BITS = 250000
 # Aspect ratio of W:H
 ASP_RATIO_REL_W = 10
 ASP_RATIO_REL_H = 10
 
-sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 10, 10)
+sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 5)
 print(sections)
 print(len(sections))
 
