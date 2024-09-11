@@ -24,6 +24,37 @@ const fetchBits = async () => {
 const allBits = await fetchBits()
 console.log(`nr of bits = ${allBits.length * 8}`)
 
+// Determine all sections which we need to fetch
+const determineRequiredSections = (
+    canvasState: CanvasState,
+    sections: Section[]
+) => {
+    // Determine edges in virtual space
+    const [topLeft, botRight] = screenToVirtualSpace(
+        [
+            [0, 0],
+            [canvasState.canvas.width, canvasState.canvas.height],
+        ],
+        canvasState
+    )
+
+    // Filter sections
+    const filteredSections = sections.filter(
+        (section) =>
+            !(
+                section.topLeft[0] > botRight[0] ||
+                section.botRight[0] < topLeft[0] ||
+                section.topLeft[1] > botRight[1] ||
+                section.botRight[1] < topLeft[1]
+            )
+    )
+    console.log(
+        `Require ${filteredSections.length} sections out of ${sections.length}`
+    )
+
+    return filteredSections
+}
+
 const fetchSections = async () => {
     return (await fetch('http://localhost:5000/sections')).json()
 }
@@ -129,6 +160,9 @@ const sectionsToScreenSpace = (
 }
 
 const drawSections = (canvasState: CanvasState, sections: Section[]) => {
+    // Filter sections which are not in view
+    sections = determineRequiredSections(canvasState, sections)
+
     const transformedSections: Section[] = sectionsToScreenSpace(
         canvasState,
         sections
