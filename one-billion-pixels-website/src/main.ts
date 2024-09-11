@@ -54,10 +54,10 @@ const determineRequiredSections = (
     const filteredSections = sections.filter(
         (section) =>
             !(
-                section.topLeft[0] > botRight[0] ||
-                section.botRight[0] < topLeft[0] ||
-                section.topLeft[1] > botRight[1] ||
-                section.botRight[1] < topLeft[1]
+                section.topLeft[0] >= botRight[0] ||
+                section.botRight[0] <= topLeft[0] ||
+                section.topLeft[1] >= botRight[1] ||
+                section.botRight[1] <= topLeft[1]
             )
     )
     console.log(`Req ${filteredSections.length} / ${sections.length}`)
@@ -75,8 +75,8 @@ type Section = {
     id: number
 }
 const sections: Section[] = await fetchSections()
-const WIDTH = sections[sections.length - 1].botRight[0] + 1
-const HEIGHT = sections[sections.length - 1].botRight[1] + 1
+const WIDTH = sections[sections.length - 1].botRight[0] // TODO: this assumes the sections to start at 0; maybe don't make this assumption
+const HEIGHT = sections[sections.length - 1].botRight[1]
 const subscribedSections: Map<number, Section> = new Map()
 console.log(WIDTH)
 console.log(HEIGHT)
@@ -229,8 +229,8 @@ const drawSections = (canvasState: CanvasState, sections: Section[]) => {
         canvasState.ctx.fillRect(
             topLeft[0],
             topLeft[1],
-            botRight[0] - topLeft[0] + 1,
-            botRight[1] - topLeft[1] + 1
+            botRight[0] - topLeft[0],
+            botRight[1] - topLeft[1]
         )
     }
 }
@@ -276,7 +276,7 @@ const addPanToCanvas = (canvasState: CanvasState) => {
 const addZoomToCanvas = (canvasState: CanvasState) => {
     canvas.onwheel = (evt) => {
         // Diff from canvas (screen) center to zoom point in screen space
-        const scalingFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
+        const scalingFactor = evt.deltaY < 0 ? 2.0 : 1 / 2.0
         const virtualCenter = canvasState.virtualCenter
         const diff = [
             evt.x - canvasState.canvas.width / 2,

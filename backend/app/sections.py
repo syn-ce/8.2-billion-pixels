@@ -19,7 +19,7 @@ def split_bits(n: int, rel_width: int, rel_height: int, rows: int, cols: int) ->
     for row in range(rows):
         for col in range(cols):
             topLeft = (col * section_w, row * section_h)
-            botRight = ((col + 1) * section_w - 1, (row + 1) * section_h - 1)
+            botRight = (col + 1) * section_w, (row + 1) * section_h
             sections.append({'topLeft': topLeft, 'botRight': botRight, 'id': row * cols + col})
     
     return sections
