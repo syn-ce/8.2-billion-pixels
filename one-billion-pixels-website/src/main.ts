@@ -96,6 +96,8 @@ canvas.width = window.innerWidth //* devicePixelRatio
 canvas.height = window.innerHeight //* devicePixelRatio
 const context = canvas.getContext('2d')!
 
+const reticle = document.getElementById('reticle')!
+
 type CanvasState = {
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
@@ -103,6 +105,7 @@ type CanvasState = {
     scale: number
     panning: boolean
     prevPanMousePos: [number, number]
+    reticle: HTMLElement
 }
 
 // Start with canvas centered in middle of screen
@@ -113,6 +116,7 @@ const canvasState: CanvasState = {
     scale: 1,
     panning: false,
     prevPanMousePos: [0, 0],
+    reticle: reticle,
 }
 
 const screenToVirtualSpace = (
@@ -205,6 +209,34 @@ const updateSections = (
     subscribeToSections(Array.from(sectionsToAdd.keys()))
 }
 
+// TODO: think about making reticle a bit more "sticky"
+// Update size of reticle and snap reticle's position to pixel closest to screen center
+const updateReticle = (canvasState: CanvasState) => {
+    const screenCenter: [number, number] = [
+        canvasState.canvas.width / 2,
+        canvasState.canvas.height / 2,
+    ]
+    const pixelValues = screenToVirtualSpace([screenCenter], canvasState)[0]
+    // Round to nearest
+    pixelValues[0] = Math.round(pixelValues[0])
+    pixelValues[1] = Math.round(pixelValues[1])
+    // Convert coordinates of that virtual pixel to screen space
+    const screenPixelCoords = virtualToScreenSpace(
+        [pixelValues],
+        canvasState
+    )[0]
+    // Update size of reticle and move it to this position
+    canvasState.reticle.style.width = `${canvasState.scale}px`
+    canvasState.reticle.style.height = `${canvasState.scale}px`
+    canvasState.reticle.style.left = `${
+        screenPixelCoords[0] - canvasState.scale
+    }px`
+    canvasState.reticle.style.top = `${
+        screenPixelCoords[1] - canvasState.scale
+    }px`
+}
+
+// TODO: panning is a bit janky because of aliasing
 const drawSections = (canvasState: CanvasState, sections: Section[]) => {
     // Filter sections which are not in view
     const requiredSections = determineRequiredSections(canvasState, sections)
@@ -224,19 +256,57 @@ const drawSections = (canvasState: CanvasState, sections: Section[]) => {
         canvasState.canvas.height
     )
 
+    const screenPixelsPerPixel = canvasState.scale // Makes assumption about relation between scale and pixels
+
+    const rows = sections[0].botRight[0] - sections[0].topLeft[0]
+    const cols = sections[0].botRight[1] - sections[0].topLeft[1]
+    // Assumes all sections have same size
+    const imgData = canvasState.ctx.createImageData(
+        rows * screenPixelsPerPixel,
+        cols * screenPixelsPerPixel
+    )
+
+    // Assumes that section is a square
+    let color = 255 ** 3 - 1
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            for (let i = 0; i < screenPixelsPerPixel; i++) {
+                //if (row + i >= rows) break
+                for (let j = 0; j < screenPixelsPerPixel; j++) {
+                    //if (col + j >= cols) break
+                    let idx =
+                        (row * cols * screenPixelsPerPixel + col) *
+                            4 *
+                            screenPixelsPerPixel +
+                        j * 4 +
+                        i * cols * 4 * screenPixelsPerPixel
+                    imgData.data[idx] = color % 255
+                    imgData.data[idx + 1] = (color / 255) % 255 ** 2
+                    imgData.data[idx + 2] = color / 255 ** 2
+                    imgData.data[idx + 3] = 255
+                }
+            }
+            color -= 500
+            if (color < 0) color = 255 ** 3 - 1
+        }
+    }
+
     for (const [id, section] of transformedSections) {
         const [topLeft, botRight] = [section.topLeft, section.botRight]
         canvasState.ctx.fillStyle = `rgb(
         ${Math.floor(255 - (255 / sections.length) * id)}
         ${Math.floor(255 - (255 / sections.length) * id)}
         0)` // randomColor()
-        canvasState.ctx.fillRect(
-            topLeft[0],
-            topLeft[1],
-            botRight[0] - topLeft[0],
-            botRight[1] - topLeft[1]
-        )
+        canvasState.ctx.putImageData(imgData, topLeft[0], topLeft[1])
+        //canvasState.ctx.fillRect(
+        //    topLeft[0],
+        //    topLeft[1],
+        //    botRight[0] - topLeft[0],
+        //    botRight[1] - topLeft[1]
+        //)
     }
+    // Update reticle
+    updateReticle(canvasState)
 }
 
 window.onresize = (evt) => {
