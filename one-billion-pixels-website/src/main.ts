@@ -14,6 +14,18 @@ socket.on('poll', (data) => {
     socket.emit('active')
 })
 
+const subscribeToSections = (ids: number[]) => {
+    if (ids.length == 0) return
+    socket.emit('subscribe', ids)
+}
+
+const unsubscribeFromSections = (ids: number[]) => {
+    if (ids.length == 0) return
+    socket.emit('unsubscribe', ids)
+}
+
+subscribeToSections([0, 1])
+
 // Canvas data
 const fetchBits = async () => {
     const buffer = await (
@@ -28,7 +40,7 @@ console.log(`nr of bits = ${allBits.length * 8}`)
 const determineRequiredSections = (
     canvasState: CanvasState,
     sections: Section[]
-) => {
+): Map<number, Section> => {
     // Determine edges in virtual space
     const [topLeft, botRight] = screenToVirtualSpace(
         [
@@ -48,21 +60,24 @@ const determineRequiredSections = (
                 section.botRight[1] < topLeft[1]
             )
     )
-    console.log(
-        `Require ${filteredSections.length} sections out of ${sections.length}`
-    )
+    console.log(`Req ${filteredSections.length} / ${sections.length}`)
 
-    return filteredSections
+    return new Map(filteredSections.map((section) => [section.id, section]))
 }
 
 const fetchSections = async () => {
     return (await fetch('http://localhost:5000/sections')).json()
 }
 
-type Section = { topLeft: [number, number]; botRight: [number, number] }
+type Section = {
+    topLeft: [number, number]
+    botRight: [number, number]
+    id: number
+}
 const sections: Section[] = await fetchSections()
 const WIDTH = sections[sections.length - 1].botRight[0] + 1
 const HEIGHT = sections[sections.length - 1].botRight[1] + 1
+const subscribedSections: Map<number, Section> = new Map()
 console.log(WIDTH)
 console.log(HEIGHT)
 
@@ -145,27 +160,57 @@ const virtualToScreenSpace = (
 
 const sectionsToScreenSpace = (
     canvasState: CanvasState,
-    sections: Section[]
+    sections: Map<number, Section>
 ) => {
-    const transformedSections: Section[] = []
-    for (let i = 0; i < sections.length; i++) {
-        const section = sections[i]
+    const transformedSections: Map<number, Section> = new Map()
+    for (const [id, section] of sections) {
         const [topLeft, botRight] = virtualToScreenSpace(
             [section.topLeft, section.botRight],
             canvasState
         )
-        transformedSections[i] = { topLeft, botRight }
+        transformedSections.set(id, { topLeft, botRight, id: section.id })
     }
     return transformedSections
 }
 
+const updateSections = (
+    curSections: Map<number, Section>,
+    requiredSections: Map<number, Section>
+) => {
+    const sectionsToRemove: Map<number, Section> = new Map()
+    // Remove sections which are no longer needed
+    for (const [id, subscribedSection] of curSections) {
+        if (!requiredSections.has(id)) {
+            sectionsToRemove.set(id, subscribedSection)
+        }
+    }
+    // Remove sections after loop so that we don't modify collection while iterating
+    console.log(`Del ${sectionsToRemove.size} sections`)
+    sectionsToRemove.forEach((section, id, map) => curSections.delete(id))
+    unsubscribeFromSections(Array.from(sectionsToRemove.keys()))
+
+    // Add new sections
+    const sectionsToAdd: Map<number, Section> = new Map()
+    for (const [id, section] of requiredSections) {
+        if (!curSections.has(section.id)) {
+            sectionsToAdd.set(id, section)
+            curSections.set(id, section)
+        }
+    }
+    console.log(`Add ${sectionsToAdd.size} sections`)
+    subscribeToSections(Array.from(sectionsToAdd.keys()))
+}
+
 const drawSections = (canvasState: CanvasState, sections: Section[]) => {
     // Filter sections which are not in view
-    sections = determineRequiredSections(canvasState, sections)
+    const requiredSections = determineRequiredSections(canvasState, sections)
 
-    const transformedSections: Section[] = sectionsToScreenSpace(
+    // Subscribe to new, unsubscribe from old
+    updateSections(subscribedSections, requiredSections)
+
+    const transformedSections: Map<number, Section> = sectionsToScreenSpace(
         canvasState,
-        sections
+        requiredSections
     )
 
     canvasState.ctx.clearRect(
@@ -175,12 +220,11 @@ const drawSections = (canvasState: CanvasState, sections: Section[]) => {
         canvasState.canvas.height
     )
 
-    for (let i = 0; i < transformedSections.length; i++) {
-        const section = transformedSections[i]
+    for (const [id, section] of transformedSections) {
         const [topLeft, botRight] = [section.topLeft, section.botRight]
         canvasState.ctx.fillStyle = `rgb(
-        ${Math.floor(255 - (255 / transformedSections.length) * i)}
-        ${Math.floor(255 - (255 / transformedSections.length) * i)}
+        ${Math.floor(255 - (255 / sections.length) * id)}
+        ${Math.floor(255 - (255 / sections.length) * id)}
         0)` // randomColor()
         canvasState.ctx.fillRect(
             topLeft[0],
