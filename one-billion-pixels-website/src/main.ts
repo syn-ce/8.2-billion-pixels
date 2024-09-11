@@ -24,10 +24,6 @@ const fetchBits = async () => {
 const allBits = await fetchBits()
 console.log(`nr of bits = ${allBits.length * 8}`)
 
-// Determine all sections which we need to fetch
-//const determineRequiredSections = (canvas: HTMLCanvasElement) => {
-//    canvas.
-//}
 const fetchSections = async () => {
     return (await fetch('http://localhost:5000/sections')).json()
 }
@@ -114,11 +110,6 @@ const virtualToScreenSpace = (
         ps.push([canvasCenter[0] + diff[0], canvasCenter[1] + diff[1]])
     }
     return ps
-
-    //return points.map((point) => [
-    //    point[0] / canvasState.scale - canvasState.xOffset,
-    //    point[1] / canvasState.scale - canvasState.yOffset,
-    //])
 }
 
 const sectionsToScreenSpace = (
@@ -166,41 +157,10 @@ const drawSections = (canvasState: CanvasState, sections: Section[]) => {
     }
 }
 
-const applyTransform = (points: [number, number][], transform: number[]) => {
-    const ps: [number, number][] = []
-    for (const point of points) {
-        const x =
-            point[0] * transform[0] + point[1] * transform[2] + transform[4]
-        const y =
-            point[0] * transform[1] + point[1] * transform[3] + transform[5]
-        ps.push([x, y])
-    }
-    return ps
-}
-
 window.onresize = (evt) => {
     canvas.width = window.innerWidth //* devicePixelRatio
     canvas.height = window.innerHeight //* devicePixelRatio
     drawSections(canvasState, sections)
-}
-
-context.fillStyle = 'red'
-context.fillRect(0, 0, canvas.width, canvas.height)
-
-//canvasWrapper.style.transform = 'scale(2.0, 2.0)'
-
-// Add scale
-
-const applyTranslate = (transform: number[], x: number, y: number) => {
-    transform[4] += transform[0] * x + transform[2] * y
-    transform[5] += transform[1] * x + transform[3] * y
-}
-
-const applyZoom = (transform: number[], zoom: number) => {
-    transform[0] *= zoom
-    transform[1] *= zoom
-    transform[2] *= zoom
-    transform[3] *= zoom
 }
 
 const addPanToCanvas = (canvasState: CanvasState) => {
@@ -288,24 +248,4 @@ const fetchImageData = async (context: CanvasRenderingContext2D) => {
     context.putImageData(imgData, 0, 0)
 }
 
-//await fetchImageData(context)
-
 drawSections(canvasState, sections)
-
-//window.addEventListener('resize', (_) => {
-//    //canvas.width = window.innerWidth * window.devicePixelRatio
-//    //canvas.height = window.innerHeight * window.devicePixelRatio
-//    const imgData = context.createImageData(canvas.width, canvas.height)
-//
-//    let white = false
-//    for (let i = 0; i < imgData.width * imgData.height * 4; i++) {
-//        if (i % 4 == 0) white = !white
-//        if (white) imgData.data[i] = 255
-//    }
-//
-//    createImageBitmap(imgData).then((s) => {
-//        context.drawImage(s, 0, 0)
-//    })
-//})
-//
-//window.dispatchEvent(new Event('resize'))
