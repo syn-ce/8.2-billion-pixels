@@ -57,9 +57,8 @@ const context = canvas.getContext('2d')!
 type CanvasState = {
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
-    logicalCenter: [number, number]
-    logicalZoom: number
-    logicalTransform: number[]
+    virtualCenter: [number, number]
+    scale: number
     panning: boolean
     prevPanMousePos: [number, number]
 }
@@ -68,35 +67,70 @@ type CanvasState = {
 const canvasState: CanvasState = {
     canvas: canvas,
     ctx: context,
-    logicalCenter: [WIDTH / 2, HEIGHT / 2],
-    logicalZoom: 1,
-    logicalTransform: [1, 0, 0, 1, 0, 0],
+    virtualCenter: [500, 500], // Point in virtual space which is initially centered in screen space
+    scale: 1,
     panning: false,
     prevPanMousePos: [0, 0],
 }
 
-const transformSectionsToCanvasCoords = (
+const screenToVirtualSpace = (
+    points: [number, number][],
+    canvasState: CanvasState
+): [number, number][] => {
+    //canvasState.virtualCenter
+    let canvasCenter = [
+        canvasState.canvas.width / 2,
+        canvasState.canvas.height / 2,
+    ]
+    let centerVirtual = canvasState.virtualCenter
+    let ps: [number, number][] = []
+    for (const point of points) {
+        // Diff on screen
+        const diff = [point[0] - canvasCenter[0], point[1] - canvasCenter[1]]
+        // Diff in virtual space
+        diff[0] /= canvasState.scale
+        diff[1] /= canvasState.scale
+        ps.push([centerVirtual[0] + diff[0], centerVirtual[1] + diff[1]])
+    }
+    return ps
+}
+
+const virtualToScreenSpace = (
+    points: [number, number][],
+    canvasState: CanvasState
+): [number, number][] => {
+    let canvasCenter = [
+        canvasState.canvas.width / 2,
+        canvasState.canvas.height / 2,
+    ]
+    let centerVirtual = canvasState.virtualCenter
+    let ps: [number, number][] = []
+    for (const point of points) {
+        // Diff in virtual space
+        const diff = [point[0] - centerVirtual[0], point[1] - centerVirtual[1]]
+        // Diff on screen
+        diff[0] *= canvasState.scale
+        diff[1] *= canvasState.scale
+        ps.push([canvasCenter[0] + diff[0], canvasCenter[1] + diff[1]])
+    }
+    return ps
+
+    //return points.map((point) => [
+    //    point[0] / canvasState.scale - canvasState.xOffset,
+    //    point[1] / canvasState.scale - canvasState.yOffset,
+    //])
+}
+
+const sectionsToScreenSpace = (
     canvasState: CanvasState,
     sections: Section[]
 ) => {
     const transformedSections: Section[] = []
     for (let i = 0; i < sections.length; i++) {
         const section = sections[i]
-        // First apply logical transform (i.e. pan, zoom)
-        // Then transform so that logical center is displayed in the middle of the screen
-        const [topLeft, botRight] = applyTransform(
-            applyTransform(
-                [section.topLeft, section.botRight],
-                canvasState.logicalTransform
-            ),
-            [
-                1,
-                0,
-                0,
-                1,
-                -canvasState.logicalCenter[0] + canvasState.canvas.width / 2,
-                -canvasState.logicalCenter[1] + canvasState.canvas.height / 2,
-            ]
+        const [topLeft, botRight] = virtualToScreenSpace(
+            [section.topLeft, section.botRight],
+            canvasState
         )
         transformedSections[i] = { topLeft, botRight }
     }
@@ -104,7 +138,7 @@ const transformSectionsToCanvasCoords = (
 }
 
 const drawSections = (canvasState: CanvasState, sections: Section[]) => {
-    const transformedSections: Section[] = transformSectionsToCanvasCoords(
+    const transformedSections: Section[] = sectionsToScreenSpace(
         canvasState,
         sections
     )
@@ -145,8 +179,8 @@ const applyTransform = (points: [number, number][], transform: number[]) => {
 }
 
 window.onresize = (evt) => {
-    canvas.width = window.innerWidth * devicePixelRatio
-    canvas.height = window.innerHeight * devicePixelRatio
+    canvas.width = window.innerWidth //* devicePixelRatio
+    canvas.height = window.innerHeight //* devicePixelRatio
     drawSections(canvasState, sections)
 }
 
@@ -177,19 +211,21 @@ const addPanToCanvas = (canvasState: CanvasState) => {
     }
     canvas.onmousemove = (evt) => {
         if (!canvasState.panning) return
-        //panning.curTranslate.x +=
-        //panning.curTranslate.y +=
-        applyTranslate(
-            canvasState.logicalTransform,
+        // Difference on screen
+        const diff = [
             evt.x - canvasState.prevPanMousePos[0],
-            evt.y - canvasState.prevPanMousePos[1]
-        )
+            evt.y - canvasState.prevPanMousePos[1],
+        ]
+
+        // Difference in virtual space
+        diff[0] /= canvasState.scale
+        diff[1] /= canvasState.scale
+        // Adjust center
+        canvasState.virtualCenter[0] -= diff[0]
+        canvasState.virtualCenter[1] -= diff[1]
+        // Update
         canvasState.prevPanMousePos = [evt.x, evt.y]
-        //curTransform.translate = panning.curTranslate
-        // TODO: refactor global sections here
         drawSections(canvasState, sections)
-        //canvasPanWrapper.style.transform = `${transformState.curTransform}`
-        //canvasPanWrapper.style.transform = `translate(${curTransform.translate.x}px ${curTransform.translate.y}px) scale(${curTransform.scale})`
     }
     canvas.onmouseup = (evt) => {
         canvasState.panning = false
@@ -199,66 +235,35 @@ const addPanToCanvas = (canvasState: CanvasState) => {
     }
 }
 
-addPanToCanvas(canvasState)
+const addZoomToCanvas = (canvasState: CanvasState) => {
+    canvas.onwheel = (evt) => {
+        // Diff from canvas (screen) center to zoom point in screen space
+        const scalingFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
+        const virtualCenter = canvasState.virtualCenter
+        const diff = [
+            evt.x - canvasState.canvas.width / 2,
+            evt.y - canvasState.canvas.height / 2,
+        ]
+        // Difference in virtual space
+        diff[0] /= canvasState.scale
+        diff[1] /= canvasState.scale
+        // Move virtual center to 0, then move zoom point to 0
+        let movedVirtualCenter: [number, number] = [-diff[0], -diff[1]]
+        // Scale up
+        movedVirtualCenter[0] /= scalingFactor
+        movedVirtualCenter[1] /= scalingFactor
+        // Move back
+        movedVirtualCenter[0] += virtualCenter[0] + diff[0]
+        movedVirtualCenter[1] += virtualCenter[1] + diff[1]
+        canvasState.scale *= scalingFactor
 
-// TODO: fix the zoom, i.e. keep the pixel under the cursor
-//canvas.onwheel = (evt) => {
-//    //console.log(evt.x, evt.y)
-//    // Move center of canvas there
-//    const canvasRect = canvas.getBoundingClientRect()
-//    //console.log('panWrapperRect')
-//    //console.log(canvasRect)
-//
-//    const relCursorPos = {
-//        x: evt.x - canvasRect.left,
-//        y: evt.y - canvasRect.top,
-//    }
-//    console.log(`zoomCenter = ${relCursorPos.x}, ${relCursorPos.y}`)
-//
-//    const curCenter = {
-//        x: canvas.width / 2,
-//        y: canvas.height / 2,
-//    }
-//    const centerDiff = {
-//        x: (1 / zoomWrapperState.curScale) * (relCursorPos.x - curCenter.x),
-//        y: (1 / zoomWrapperState.curScale) * (relCursorPos.y - curCenter.y),
-//    }
-//
-//    // 1. Center zoom-point
-//    console.log(centerDiff)
-//
-//    //console.log(`transform before = ${zoomWrapperTransform}`)
-//
-//    //applyTranslate(zoomWrapperTransform, centerDiff.x, centerDiff.y)
-//    // 2. Zoom
-//    const oldScale = zoomWrapperState.curScale
-//    if (evt.deltaY > 0) zoomWrapperState.curScale -= 0.01
-//    else zoomWrapperState.curScale += 0.01
-//    zoomWrapperState.curScale = Math.max(
-//        zoomWrapperState.invMinZoom,
-//        zoomWrapperState.curScale
-//    )
-//    zoomWrapperState.curScale = Math.min(
-//        zoomWrapperState.invMaxZoom,
-//        zoomWrapperState.curScale
-//    )
-//    //console.log(`curScale = ${zoomWrapperState.curScale}`)
-//    //console.log(oldScale / zoomWrapperState.curScale)
-//    applyZoom(zoomWrapperTransform, zoomWrapperState.curScale / oldScale)
-//    // 3. Move back
-//    //applyTranslate(zoomWrapperTransform, -centerDiff.x, -centerDiff.y)
-//    //console.log(`transform after = ${zoomWrapperTransform}`)
-//    setTransform(canvasZoomWrapper, zoomWrapperTransform)
-//    //console.log(evt.deltaY)
-//
-//    //canvasPanWrapper.style.transform = `${transformState.curTransform}`
-//    //curTransform.translate.x += zoomCenter.x - curCenter.x
-//    //curTransform.translate.y += zoomCenter.y - curCenter.y
-//    //canvasZoomWrapper.style.transformStyle
-//    //canvasZoomWrapper.style.transform = `translate(${curTransform.translate.x}px ${curTransform.translate.y}px) scale(${curTransform.scale})`
-//
-//    console.log(curCenter)
-//}
+        canvasState.virtualCenter = movedVirtualCenter
+        drawSections(canvasState, sections)
+    }
+}
+
+addPanToCanvas(canvasState)
+addZoomToCanvas(canvasState)
 
 // Current aspect ratio
 
