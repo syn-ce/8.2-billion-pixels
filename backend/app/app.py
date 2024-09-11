@@ -1,6 +1,6 @@
 from flask import Flask, session
 from redis import Redis
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, leave_room
 from flask_cors import CORS, cross_origin
 import redis
 import sched, time
@@ -65,12 +65,17 @@ def handle_connect():
 def handle_disconnect():
     app.logger.info(f'Client disconnected {redis.decr("clients", 0) - 1}')
 
+# TODO: add validation to all endpoints / messages
 @socketio.on('subscribe')
 def handle_subscribe(ids: list[int]):
+    for id in ids:
+        join_room(id)
     app.logger.info(f'sub {ids}')
 
 @socketio.on('unsubscribe')
 def handle_subscribe(ids):
+    for id in ids:
+        leave_room(id)
     app.logger.info(f'unsub {ids}')
 
 @socketio.on('message')
