@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, session
 from redis import Redis
 from flask_socketio import SocketIO
 from flask_cors import CORS, cross_origin
 import redis
 import sched, time
+import uuid
 
 from sections import Section, Point2D, split_bits
 
@@ -22,9 +23,17 @@ sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 
 print(sections)
 print(len(sections))
 
+# Store the sections as bits in redis
+# TODO: use pipelining or scripting
+for section in sections:
+    redis.set(section['id'], '')
+    nr = (section['botRight'][0] -  section['topLeft'][0] + 1) * (section['botRight'][1] - section['topLeft'][1] + 1) - 1
+    nr = int(nr)
+    redis.setbit(section['id'], nr, 0)
+
 bitfield = 'bitfield'
 redis.set(bitfield, "this is some random text")
-redis.setbit(bitfield, NR_BITS - 1, 1)
+redis.setbit(bitfield, NR_BITS - 1, 0)
 
 # The sections are going to stored in redis individually.
 
@@ -47,11 +56,22 @@ def get_sections():
 
 @socketio.on('connect')
 def handle_connect():
+    session['user_id'] = str(uuid.uuid4())
     app.logger.info(f'Client connected {redis.incr("clients", 0) + 1}')
+    # TODO: care about this in the frontend
+    socketio.emit('session', {'user_id': session['user_id']})
 
 @socketio.on('disconnect')
 def handle_disconnect():
     app.logger.info(f'Client disconnected {redis.decr("clients", 0) - 1}')
+
+@socketio.on('subscribe')
+def handle_subscribe(ids: list[int]):
+    app.logger.info(f'sub {ids}')
+
+@socketio.on('unsubscribe')
+def handle_subscribe(ids):
+    app.logger.info(f'unsub {ids}')
 
 @socketio.on('message')
 def handle_message():
