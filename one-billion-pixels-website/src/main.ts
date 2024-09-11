@@ -153,7 +153,11 @@ const virtualToScreenSpace = (
         // Diff on screen
         diff[0] *= canvasState.scale
         diff[1] *= canvasState.scale
-        ps.push([canvasCenter[0] + diff[0], canvasCenter[1] + diff[1]])
+        ps.push([
+            // TODO: verify that ceil here doesn't mess things up
+            Math.ceil(canvasCenter[0] + diff[0]),
+            Math.ceil(canvasCenter[1] + diff[1]),
+        ])
     }
     return ps
 }
