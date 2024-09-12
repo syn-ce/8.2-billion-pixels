@@ -1,3 +1,4 @@
+import { Reticle } from './Reticle'
 import './style.css'
 import { io } from 'socket.io-client'
 
@@ -81,7 +82,7 @@ type CanvasState = {
     scale: number
     panning: boolean
     prevPanMousePos: [number, number]
-    reticle: HTMLElement
+    reticle: Reticle
     sections: Map<number, Section>
     subscribedSectionIds: Set<number>
 }
@@ -102,7 +103,7 @@ const canvasState: CanvasState = {
     scale: 1,
     panning: false,
     prevPanMousePos: [0, 0],
-    reticle: reticle,
+    reticle: new Reticle(reticle, [250, 250]),
     sections: new Map(),
     subscribedSectionIds: new Set(),
 }
@@ -213,6 +214,16 @@ const screenToVirtualSpace = (
     return ps
 }
 
+const virtualToScreenSpaceIntegers = (
+    points: [number, number][],
+    canvasState: CanvasState
+): [number, number][] => {
+    return virtualToScreenSpace(points, canvasState).map((point) => [
+        Math.ceil(point[0]),
+        Math.ceil(point[1]),
+    ])
+}
+
 const virtualToScreenSpace = (
     points: [number, number][],
     canvasState: CanvasState
@@ -231,8 +242,8 @@ const virtualToScreenSpace = (
         diff[1] *= canvasState.scale
         ps.push([
             // TODO: verify that ceil here doesn't mess things up
-            Math.ceil(canvasCenter[0] + diff[0]),
-            Math.ceil(canvasCenter[1] + diff[1]),
+            canvasCenter[0] + diff[0],
+            canvasCenter[1] + diff[1],
         ])
     }
     return ps
@@ -242,7 +253,7 @@ const sectionToScreenSpace = (
     canvasState: CanvasState,
     section: Section
 ): Section => {
-    const [topLeft, botRight] = virtualToScreenSpace(
+    const [topLeft, botRight] = virtualToScreenSpaceIntegers(
         [section.topLeft, section.botRight],
         canvasState
     )
@@ -319,20 +330,21 @@ const updateReticle = (canvasState: CanvasState) => {
     // Round to nearest
     pixelValues[0] = Math.round(pixelValues[0])
     pixelValues[1] = Math.round(pixelValues[1])
+
     // Convert coordinates of that virtual pixel to screen space
-    const screenPixelCoords = virtualToScreenSpace(
+    const screenPixelCoords = virtualToScreenSpaceIntegers(
         [pixelValues],
         canvasState
     )[0]
+    const reticle = canvasState.reticle
+    screenPixelCoords[0] = screenPixelCoords[0] - canvasState.scale
+    screenPixelCoords[1] = screenPixelCoords[1] - canvasState.scale
+    reticle.screenPixel = screenPixelCoords
     // Update size of reticle and move it to this position
-    canvasState.reticle.style.width = `${canvasState.scale}px`
-    canvasState.reticle.style.height = `${canvasState.scale}px`
-    canvasState.reticle.style.left = `${
-        screenPixelCoords[0] - canvasState.scale
-    }px`
-    canvasState.reticle.style.top = `${
-        screenPixelCoords[1] - canvasState.scale
-    }px`
+    reticle.htmlElement.style.width = `${canvasState.scale}px`
+    reticle.htmlElement.style.height = `${canvasState.scale}px`
+    reticle.htmlElement.style.left = `${screenPixelCoords[0]}px`
+    reticle.htmlElement.style.top = `${screenPixelCoords[1]}px`
 }
 
 // TODO: panning is a bit janky because of aliasing
