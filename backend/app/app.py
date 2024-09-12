@@ -5,6 +5,7 @@ from flask_cors import CORS, cross_origin
 import redis
 import sched, time
 import uuid
+import random, string
 
 from sections import Section, Point2D, split_bits
 
@@ -20,16 +21,22 @@ ASP_RATIO_REL_W = 10
 ASP_RATIO_REL_H = 10
 
 sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 5)
-print(sections)
 print(len(sections))
-
+print(sections[0])
 # Store the sections as bits in redis
 # TODO: use pipelining or scripting
 for section in sections:
-    redis.set(section['id'], '')
-    nr = (section['botRight'][0] -  section['topLeft'][0]) * (section['botRight'][1] - section['topLeft'][1]) - 1
-    nr = int(nr)
-    redis.setbit(section['id'], nr, 0)
+    width = int(section['botRight'][0] -  section['topLeft'][0])
+    height = int(section['botRight'][1] - section['topLeft'][1])
+    bytes_width = int(width // 8)
+    bytes_height = height
+    total = width * height
+    nr_bytes = int(total // 8)
+
+    #remainder = total % 8
+    # TODO: reconsider remainder
+    alt_bits =''.join(random.choices(string.ascii_uppercase + string.digits, k=nr_bytes+1)) # + 1 for remainder
+    redis.set(section['id'], alt_bits)
 
 bitfield = 'bitfield'
 redis.set(bitfield, "this is some random text")
@@ -53,6 +60,12 @@ def get_img():
 @app.route('/sections')
 def get_sections():
     return sections
+
+@cross_origin
+@app.route('/section-data/<id>')
+def get_section_data(id):
+    app.logger.info(f'Request for section {id}')
+    return redis.get(id)
 
 @socketio.on('connect')
 def handle_connect():

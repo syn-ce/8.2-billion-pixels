@@ -24,8 +24,6 @@ const unsubscribeFromSections = (ids: number[]) => {
     socket.emit('unsubscribe', ids)
 }
 
-subscribeToSections([0, 1])
-
 // Canvas data
 const fetchBits = async () => {
     const buffer = await (
@@ -73,6 +71,7 @@ type Section = {
     topLeft: [number, number]
     botRight: [number, number]
     id: number
+    data: Uint8Array
 }
 const sections: Section[] = await fetchSections()
 const WIDTH = sections[sections.length - 1].botRight[0] // TODO: this assumes the sections to start at 0; maybe don't make this assumption
@@ -94,9 +93,84 @@ const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
 console.log(screen.width)
 canvas.width = window.innerWidth //* devicePixelRatio
 canvas.height = window.innerHeight //* devicePixelRatio
-const context = canvas.getContext('2d')!
+const ctx = canvas.getContext('2d')!
 
 const reticle = document.getElementById('reticle')!
+
+const fetchSectionData = async (section: Section) => {
+    console.log(`fetch ${section.id}`)
+    const buffer = await (
+        await fetch(`http://localhost:5000/section-data/${section.id}`)
+    ).arrayBuffer()
+
+    const bytes = new Uint8Array(buffer)
+    return bytes
+}
+
+const drawSection = (section: Section, canvasState: CanvasState) => {
+    const virtualSectionWidth = section.botRight[0] - section.topLeft[0]
+    const virtualSectionHeight = section.botRight[1] - section.topLeft[1]
+
+    section = sectionToScreenSpace(canvasState, section)
+    const bytes = section.data
+    if (bytes === undefined)
+        console.error(
+            `You are trying to draw section ${section.id}, but its data is undefined. Fetch it before drawing the section.`
+        )
+
+    const widthOnScreen = section.botRight[0] - section.topLeft[0] //* devicePixelRatio
+    const heightOnScreen = section.botRight[1] - section.topLeft[1] //* devicePixelRatio
+
+    const imgData = canvasState.ctx.createImageData(
+        widthOnScreen,
+        heightOnScreen
+    )
+    const screenPixelsPerPixel = canvasState.scale // Makes assumption about relation between scale and pixels
+    let idxOffset = 7
+    let bytesIdx = 0
+    let count = 0
+
+    const counts = []
+    for (let i = 0; i < 10000; i++) counts.push(0)
+    let bit = 0
+    for (let row = 0; row < virtualSectionHeight; row++) {
+        for (let col = 0; col < virtualSectionWidth; col++) {
+            let bits = bytes[bytesIdx]
+            bit = (bits >> idxOffset) & 1
+            counts[bytesIdx]++
+            idxOffset--
+            if (idxOffset == -1) {
+                idxOffset = 7
+                bytesIdx++
+            }
+            let color = bit == 1 ? 255 : 0
+            for (let i = 0; i < screenPixelsPerPixel; i++) {
+                //if (row + i >= rows) break
+                for (let j = 0; j < screenPixelsPerPixel; j++) {
+                    count++
+                    //if (col + j >= cols) break
+                    let idx =
+                        (row * virtualSectionWidth * screenPixelsPerPixel +
+                            col) *
+                            4 *
+                            screenPixelsPerPixel +
+                        j * 4 +
+                        i * virtualSectionWidth * 4 * screenPixelsPerPixel
+                    imgData.data[idx] = color
+                    imgData.data[idx + 1] = color + section.id * 10
+                    imgData.data[idx + 2] = color + section.id * 10
+                    imgData.data[idx + 3] = 255
+                }
+            }
+        }
+    }
+
+    canvasState.ctx.putImageData(
+        imgData,
+        section.topLeft[0],
+        section.topLeft[1]
+    )
+}
 
 type CanvasState = {
     canvas: HTMLCanvasElement
@@ -111,7 +185,7 @@ type CanvasState = {
 // Start with canvas centered in middle of screen
 const canvasState: CanvasState = {
     canvas: canvas,
-    ctx: context,
+    ctx: ctx,
     virtualCenter: [250, 250], // Point in virtual space which is initially centered in screen space
     scale: 1,
     panning: false,
@@ -166,22 +240,34 @@ const virtualToScreenSpace = (
     return ps
 }
 
+const sectionToScreenSpace = (
+    canvasState: CanvasState,
+    section: Section
+): Section => {
+    const [topLeft, botRight] = virtualToScreenSpace(
+        [section.topLeft, section.botRight],
+        canvasState
+    )
+    return {
+        topLeft,
+        botRight,
+        id: section.id,
+        data: section.data,
+    }
+}
+
 const sectionsToScreenSpace = (
     canvasState: CanvasState,
     sections: Map<number, Section>
 ) => {
     const transformedSections: Map<number, Section> = new Map()
     for (const [id, section] of sections) {
-        const [topLeft, botRight] = virtualToScreenSpace(
-            [section.topLeft, section.botRight],
-            canvasState
-        )
-        transformedSections.set(id, { topLeft, botRight, id: section.id })
+        transformedSections.set(id, sectionToScreenSpace(canvasState, section))
     }
     return transformedSections
 }
 
-const updateSections = (
+const updateSections = async (
     curSections: Map<number, Section>,
     requiredSections: Map<number, Section>
 ) => {
@@ -207,6 +293,18 @@ const updateSections = (
     }
     console.log(`Add ${sectionsToAdd.size} sections`)
     subscribeToSections(Array.from(sectionsToAdd.keys()))
+    // Fetch sections data
+    await fetchSectionsData(Array.from(sectionsToAdd.values()))
+}
+
+const fetchSectionsData = async (sections: Section[]) => {
+    return Promise.all(
+        Array.from(
+            sections.map(async (section) => {
+                section.data = await fetchSectionData(section)
+            })
+        )
+    )
 }
 
 // TODO: think about making reticle a bit more "sticky"
@@ -237,17 +335,12 @@ const updateReticle = (canvasState: CanvasState) => {
 }
 
 // TODO: panning is a bit janky because of aliasing
-const drawSections = (canvasState: CanvasState, sections: Section[]) => {
+const drawSections = async (canvasState: CanvasState, sections: Section[]) => {
     // Filter sections which are not in view
     const requiredSections = determineRequiredSections(canvasState, sections)
 
     // Subscribe to new, unsubscribe from old
-    updateSections(subscribedSections, requiredSections)
-
-    const transformedSections: Map<number, Section> = sectionsToScreenSpace(
-        canvasState,
-        requiredSections
-    )
+    await updateSections(subscribedSections, requiredSections)
 
     canvasState.ctx.clearRect(
         0,
@@ -256,55 +349,10 @@ const drawSections = (canvasState: CanvasState, sections: Section[]) => {
         canvasState.canvas.height
     )
 
-    const screenPixelsPerPixel = canvasState.scale // Makes assumption about relation between scale and pixels
-
-    const rows = sections[0].botRight[0] - sections[0].topLeft[0]
-    const cols = sections[0].botRight[1] - sections[0].topLeft[1]
-    // Assumes all sections have same size
-    const imgData = canvasState.ctx.createImageData(
-        rows * screenPixelsPerPixel,
-        cols * screenPixelsPerPixel
+    requiredSections.forEach((reqSection) =>
+        drawSection(reqSection, canvasState)
     )
 
-    // Assumes that section is a square
-    let color = 255 ** 3 - 1
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            for (let i = 0; i < screenPixelsPerPixel; i++) {
-                //if (row + i >= rows) break
-                for (let j = 0; j < screenPixelsPerPixel; j++) {
-                    //if (col + j >= cols) break
-                    let idx =
-                        (row * cols * screenPixelsPerPixel + col) *
-                            4 *
-                            screenPixelsPerPixel +
-                        j * 4 +
-                        i * cols * 4 * screenPixelsPerPixel
-                    imgData.data[idx] = color % 255
-                    imgData.data[idx + 1] = (color / 255) % 255 ** 2
-                    imgData.data[idx + 2] = color / 255 ** 2
-                    imgData.data[idx + 3] = 255
-                }
-            }
-            color -= 500
-            if (color < 0) color = 255 ** 3 - 1
-        }
-    }
-
-    for (const [id, section] of transformedSections) {
-        const [topLeft, botRight] = [section.topLeft, section.botRight]
-        canvasState.ctx.fillStyle = `rgb(
-        ${Math.floor(255 - (255 / sections.length) * id)}
-        ${Math.floor(255 - (255 / sections.length) * id)}
-        0)` // randomColor()
-        canvasState.ctx.putImageData(imgData, topLeft[0], topLeft[1])
-        //canvasState.ctx.fillRect(
-        //    topLeft[0],
-        //    topLeft[1],
-        //    botRight[0] - topLeft[0],
-        //    botRight[1] - topLeft[1]
-        //)
-    }
     // Update reticle
     updateReticle(canvasState)
 }
