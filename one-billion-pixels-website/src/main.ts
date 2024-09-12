@@ -38,7 +38,7 @@ console.log(`nr of bits = ${allBits.length * 8}`)
 const determineRequiredSections = (
     canvasState: CanvasState,
     sections: Section[]
-): Map<number, Section> => {
+): Set<number> => {
     // Determine edges in virtual space
     const [topLeft, botRight] = screenToVirtualSpace(
         [
@@ -60,7 +60,7 @@ const determineRequiredSections = (
     )
     console.log(`Req ${filteredSections.length} / ${sections.length}`)
 
-    return new Map(filteredSections.map((section) => [section.id, section]))
+    return new Set(filteredSections.map((section) => section.id))
 }
 
 const fetchSections = async () => {
@@ -73,20 +73,17 @@ type Section = {
     id: number
     data: Uint8Array
 }
-const sections: Section[] = await fetchSections()
-const WIDTH = sections[sections.length - 1].botRight[0] // TODO: this assumes the sections to start at 0; maybe don't make this assumption
-const HEIGHT = sections[sections.length - 1].botRight[1]
-const subscribedSections: Map<number, Section> = new Map()
-console.log(WIDTH)
-console.log(HEIGHT)
 
-function randomColor() {
-    let chars = '0123456789ABCDEF'
-    let color = '#'
-    for (var i = 0; i < 6; i++) {
-        color += chars[Math.floor(Math.random() * chars.length)]
-    }
-    return color
+type CanvasState = {
+    canvas: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+    virtualCenter: [number, number]
+    scale: number
+    panning: boolean
+    prevPanMousePos: [number, number]
+    reticle: HTMLElement
+    sections: Map<number, Section>
+    subscribedSectionIds: Set<number>
 }
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
@@ -96,6 +93,27 @@ canvas.height = window.innerHeight //* devicePixelRatio
 const ctx = canvas.getContext('2d')!
 
 const reticle = document.getElementById('reticle')!
+
+// Start with canvas centered in middle of screen
+const canvasState: CanvasState = {
+    canvas: canvas,
+    ctx: ctx,
+    virtualCenter: [250, 250], // Point in virtual space which is initially centered in screen space
+    scale: 1,
+    panning: false,
+    prevPanMousePos: [0, 0],
+    reticle: reticle,
+    sections: new Map(),
+    subscribedSectionIds: new Set(),
+}
+
+const sections: Section[] = await fetchSections()
+const WIDTH = sections[sections.length - 1].botRight[0] // TODO: this assumes the sections to start at 0; maybe don't make this assumption
+const HEIGHT = sections[sections.length - 1].botRight[1]
+//const subscribedSections: Map<number, Section> = new Map()
+console.log(WIDTH)
+console.log(HEIGHT)
+canvasState.sections = new Map(sections.map((section) => [section.id, section]))
 
 const fetchSectionData = async (section: Section) => {
     console.log(`fetch ${section.id}`)
@@ -107,7 +125,8 @@ const fetchSectionData = async (section: Section) => {
     return bytes
 }
 
-const drawSection = (section: Section, canvasState: CanvasState) => {
+const drawSection = (sectionId: number, canvasState: CanvasState) => {
+    let section = canvasState.sections.get(sectionId)!
     const virtualSectionWidth = section.botRight[0] - section.topLeft[0]
     const virtualSectionHeight = section.botRight[1] - section.topLeft[1]
 
@@ -170,27 +189,6 @@ const drawSection = (section: Section, canvasState: CanvasState) => {
         section.topLeft[0],
         section.topLeft[1]
     )
-}
-
-type CanvasState = {
-    canvas: HTMLCanvasElement
-    ctx: CanvasRenderingContext2D
-    virtualCenter: [number, number]
-    scale: number
-    panning: boolean
-    prevPanMousePos: [number, number]
-    reticle: HTMLElement
-}
-
-// Start with canvas centered in middle of screen
-const canvasState: CanvasState = {
-    canvas: canvas,
-    ctx: ctx,
-    virtualCenter: [250, 250], // Point in virtual space which is initially centered in screen space
-    scale: 1,
-    panning: false,
-    prevPanMousePos: [0, 0],
-    reticle: reticle,
 }
 
 const screenToVirtualSpace = (
@@ -268,33 +266,36 @@ const sectionsToScreenSpace = (
 }
 
 const updateSections = async (
-    curSections: Map<number, Section>,
-    requiredSections: Map<number, Section>
+    requiredSections: Set<number>,
+    canvasState: CanvasState
 ) => {
-    const sectionsToRemove: Map<number, Section> = new Map()
+    const curSections = canvasState.subscribedSectionIds
+    const sectionIdsToRemove: Set<number> = new Set()
     // Remove sections which are no longer needed
-    for (const [id, subscribedSection] of curSections) {
+    for (const id of curSections) {
         if (!requiredSections.has(id)) {
-            sectionsToRemove.set(id, subscribedSection)
+            sectionIdsToRemove.add(id) // Mark section to be removed
         }
     }
     // Remove sections after loop so that we don't modify collection while iterating
-    console.log(`Del ${sectionsToRemove.size} sections`)
-    sectionsToRemove.forEach((section, id, map) => curSections.delete(id))
-    unsubscribeFromSections(Array.from(sectionsToRemove.keys()))
+    console.log(`Del ${sectionIdsToRemove.size} sections`)
+    sectionIdsToRemove.forEach((id, _, set) => curSections.delete(id))
+    unsubscribeFromSections(Array.from(sectionIdsToRemove))
 
     // Add new sections
-    const sectionsToAdd: Map<number, Section> = new Map()
-    for (const [id, section] of requiredSections) {
-        if (!curSections.has(section.id)) {
-            sectionsToAdd.set(id, section)
-            curSections.set(id, section)
+    const sectionIdsToAdd: Set<number> = new Set()
+    for (const id of requiredSections) {
+        if (!curSections.has(id)) {
+            sectionIdsToAdd.add(id)
+            curSections.add(id)
         }
     }
-    console.log(`Add ${sectionsToAdd.size} sections`)
-    subscribeToSections(Array.from(sectionsToAdd.keys()))
+    console.log(`Add ${sectionIdsToAdd.size} sections`)
+    subscribeToSections(Array.from(sectionIdsToAdd))
     // Fetch sections data
-    await fetchSectionsData(Array.from(sectionsToAdd.values()))
+    await fetchSectionsData(
+        Array.from(sectionIdsToAdd).map((id) => canvasState.sections.get(id)!)
+    )
 }
 
 const fetchSectionsData = async (sections: Section[]) => {
@@ -337,10 +338,10 @@ const updateReticle = (canvasState: CanvasState) => {
 // TODO: panning is a bit janky because of aliasing
 const drawSections = async (canvasState: CanvasState, sections: Section[]) => {
     // Filter sections which are not in view
-    const requiredSections = determineRequiredSections(canvasState, sections)
+    const requiredSectionsIds = determineRequiredSections(canvasState, sections)
 
     // Subscribe to new, unsubscribe from old
-    await updateSections(subscribedSections, requiredSections)
+    await updateSections(requiredSectionsIds, canvasState)
 
     canvasState.ctx.clearRect(
         0,
@@ -349,8 +350,8 @@ const drawSections = async (canvasState: CanvasState, sections: Section[]) => {
         canvasState.canvas.height
     )
 
-    requiredSections.forEach((reqSection) =>
-        drawSection(reqSection, canvasState)
+    requiredSectionsIds.forEach((reqSectionId) =>
+        drawSection(reqSectionId, canvasState)
     )
 
     // Update reticle
