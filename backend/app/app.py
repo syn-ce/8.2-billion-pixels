@@ -27,7 +27,7 @@ print(len(sections))
 # TODO: use pipelining or scripting
 for section in sections:
     redis.set(section['id'], '')
-    nr = (section['botRight'][0] -  section['topLeft'][0] + 1) * (section['botRight'][1] - section['topLeft'][1] + 1) - 1
+    nr = (section['botRight'][0] -  section['topLeft'][0]) * (section['botRight'][1] - section['topLeft'][1]) - 1
     nr = int(nr)
     redis.setbit(section['id'], nr, 0)
 
