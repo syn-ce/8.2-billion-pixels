@@ -91,6 +91,10 @@ def handle_subscribe(ids):
         leave_room(id)
     app.logger.info(f'unsub {ids}')
 
+@socketio.on('set_pixel')
+def handle_set_pixel(data):
+    app.logger.info(data)
+
 @socketio.on('message')
 def handle_message():
     app.logger.info('received message: ')

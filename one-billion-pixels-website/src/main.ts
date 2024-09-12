@@ -319,6 +319,70 @@ const fetchSectionsData = async (sections: Section[]) => {
     )
 }
 
+const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')
+
+setPixelBtn.onclick = async () => {
+    setPixel(canvasState.reticle.screenPixel, 0, canvasState)
+}
+
+const setPixelInSection = (
+    section: Section,
+    virtualPixel: [number, number],
+    color: number
+) => {
+    const width = section.botRight[0] - section.topLeft[0]
+    const idx =
+        width * (virtualPixel[1] - section.topLeft[1]) +
+        (virtualPixel[0] - section.topLeft[0])
+    const byteIdx = Math.floor(idx / 8)
+    const bitIdx = idx % 8
+
+    if (color == 0) section.data[byteIdx] &= 255 ^ ((1 << 7) >> bitIdx)
+    else section.data[byteIdx] |= (1 << 7) >> bitIdx
+}
+
+const setPixel = (
+    screenCoords: [number, number],
+    color: number,
+    canvasState: CanvasState
+) => {
+    socket.emit('set_pixel', [...screenCoords, color])
+    const screenPixel = canvasState.reticle.screenPixel
+
+    // TODO: think about what to do when this isn't a whole value;
+    // The docs advise to only use integer values to improve performance
+    const screenPixelsPerPixel = canvasState.scale
+
+    // Fill pixel on canvas
+    canvasState.ctx.fillRect(
+        screenPixel[0],
+        screenPixel[1],
+        screenPixelsPerPixel,
+        screenPixelsPerPixel
+    )
+
+    // TODO: worry about all of these bangs
+    // Apply update to section's data
+    // Determine correct section based on virtual pixel
+    const virtualPixel = screenToVirtualSpace([screenPixel], canvasState)[0]
+    const sectionId = Array.from(canvasState.subscribedSectionIds).find(
+        (id) => {
+            const sec = canvasState.sections.get(id)!
+            return (
+                sec.topLeft[0] <= virtualPixel[0] &&
+                sec.topLeft[1] <= virtualPixel[1] &&
+                virtualPixel[0] < sec.botRight[0] &&
+                virtualPixel[1] < sec.botRight[1]
+            )
+        }
+    )!
+    // Now that we've found the pixel, we can floor to the actual coordinates (could also do this before, but seems safer to do it after (numerical reasons))
+    virtualPixel[0] = Math.floor(virtualPixel[0])
+    virtualPixel[1] = Math.floor(virtualPixel[1])
+    const section = canvasState.sections.get(sectionId)!
+    setPixelInSection(section, virtualPixel, color)
+}
+
 // TODO: think about making reticle a bit more "sticky"
 // Update size of reticle and snap reticle's position to pixel closest to screen center
 const updateReticle = (canvasState: CanvasState) => {

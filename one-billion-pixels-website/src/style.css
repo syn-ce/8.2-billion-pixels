@@ -42,6 +42,12 @@ h1 {
     height: 100%;
 }
 
+#set-pixel-btn {
+    position: absolute;
+    right: 10%;
+    bottom: 10%;
+}
+
 #reticle {
     position: absolute;
     top: 50%;
