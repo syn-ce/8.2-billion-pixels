@@ -5,4 +5,5 @@ COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 COPY app app
-CMD ["python", "app.py"]
+
+CMD ["gunicorn", "--config", "gunicorn_config.py", "--log-level=info", "--reload", "app:app"]

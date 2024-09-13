@@ -2,13 +2,22 @@ import { Reticle } from './Reticle'
 import './style.css'
 import { io } from 'socket.io-client'
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] })
+const URL = '/api'
+
+// This assumes that the front is served from the same domain as the server (currently proxying through vite)
+const socket = io({
+    transports: ['websocket'],
+})
 socket.on('connect', () => {
     socket.emit('my event', { data: "I'm connected!" })
 })
 //
 socket.on('message', () => {
     socket.send()
+})
+
+socket.on('session', () => {
+    console.log('Connected')
 })
 //
 socket.on('poll', (data) => {
@@ -27,9 +36,7 @@ const unsubscribeFromSections = (ids: number[]) => {
 
 // Canvas data
 const fetchBits = async () => {
-    const buffer = await (
-        await fetch('http://localhost:5000/bits')
-    ).arrayBuffer()
+    const buffer = await (await fetch(`${URL}/bits`)).arrayBuffer()
     return new Uint8Array(buffer)
 }
 const allBits = await fetchBits()
@@ -65,7 +72,7 @@ const determineRequiredSections = (
 }
 
 const fetchSections = async () => {
-    return (await fetch('http://localhost:5000/sections')).json()
+    return (await fetch(`${URL}/sections`)).json()
 }
 
 type Section = {
@@ -119,7 +126,7 @@ canvasState.sections = new Map(sections.map((section) => [section.id, section]))
 const fetchSectionData = async (section: Section) => {
     console.log(`fetch ${section.id}`)
     const buffer = await (
-        await fetch(`http://localhost:5000/section-data/${section.id}`)
+        await fetch(`${URL}/section-data/${section.id}`)
     ).arrayBuffer()
 
     const bytes = new Uint8Array(buffer)

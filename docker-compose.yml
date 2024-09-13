@@ -11,11 +11,25 @@ services:
         depends_on:
             - redis
         build: ./backend
-        ports:
-            - 5000:5000
         volumes:
             - ./backend/app:/app
         environment:
             - FLASK_ENV=development
+        deploy:
+            replicas: 2
+
+    website:
+        depends_on:
+            - flask-app
+        build: ./one-billion-pixels-website
+        ports:
+            - 5173:8000
+        volumes:
+            - ./one-billion-pixels-website:/app
     redis:
         image: 'redis:alpine'
+
+    redisinsight:
+        image: 'redislabs/redisinsight:latest'
+        ports:
+            - 5540:5540

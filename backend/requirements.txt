@@ -2,3 +2,5 @@ flask
 redis
 flask-socketio
 flask-cors
+apscheduler
+gunicorn
