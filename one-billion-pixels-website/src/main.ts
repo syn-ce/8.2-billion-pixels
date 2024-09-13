@@ -334,6 +334,8 @@ const setPixelInSection = (
     const idx =
         width * (virtualPixel[1] - section.topLeft[1]) +
         (virtualPixel[0] - section.topLeft[0])
+
+    socket.emit('set_pixel', [section.id, idx, color])
     const byteIdx = Math.floor(idx / 8)
     const bitIdx = idx % 8
 
@@ -342,13 +344,10 @@ const setPixelInSection = (
 }
 
 const setPixel = (
-    screenCoords: [number, number],
+    screenPixel: [number, number],
     color: number,
     canvasState: CanvasState
 ) => {
-    socket.emit('set_pixel', [...screenCoords, color])
-    const screenPixel = canvasState.reticle.screenPixel
-
     // TODO: think about what to do when this isn't a whole value;
     // The docs advise to only use integer values to improve performance
     const screenPixelsPerPixel = canvasState.scale
@@ -376,6 +375,8 @@ const setPixel = (
             )
         }
     )!
+
+    // TODO: check whether flooring here is the correct thing, especially with fractional scaling
     // Now that we've found the pixel, we can floor to the actual coordinates (could also do this before, but seems safer to do it after (numerical reasons))
     virtualPixel[0] = Math.floor(virtualPixel[0])
     virtualPixel[1] = Math.floor(virtualPixel[1])
