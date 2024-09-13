@@ -9,20 +9,9 @@ const URL = '/api'
 const socket = io({
     transports: ['websocket'],
 })
-socket.on('connect', () => {
-    socket.emit('my event', { data: "I'm connected!" })
-})
-//
-socket.on('message', () => {
-    socket.send()
-})
 
 socket.on('session', () => {
     console.log('Connected')
-})
-//
-socket.on('poll', (data) => {
-    socket.emit('active')
 })
 
 socket.on(
