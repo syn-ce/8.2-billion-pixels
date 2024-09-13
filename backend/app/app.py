@@ -93,7 +93,8 @@ def handle_subscribe(ids):
 
 @socketio.on('set_pixel')
 def handle_set_pixel(data):
-    app.logger.info(data)
+    sectionId, pixelIdx, color = data
+    redis.setbit(sectionId, pixelIdx, color)
 
 @socketio.on('message')
 def handle_message():
