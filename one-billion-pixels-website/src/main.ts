@@ -1,3 +1,4 @@
+import { ColorChoice, ColorPicker } from './ColorPicker'
 import { Reticle } from './Reticle'
 import './style.css'
 import { io } from 'socket.io-client'
@@ -134,6 +135,19 @@ const HEIGHT = sections[sections.length - 1].botRight[1]
 console.log(WIDTH)
 console.log(HEIGHT)
 canvasState.sections = new Map(sections.map((section) => [section.id, section]))
+
+const fetchColorChoices = async () => {
+    const colorChoices: ColorChoice[] = await (
+        await fetch(`${URL}/colors`)
+    ).json()
+    return colorChoices
+}
+
+const colors: ColorChoice[] = await fetchColorChoices()
+const colorPicker = new ColorPicker(
+    colors,
+    <HTMLDivElement>document.getElementById('color-picker')
+)
 
 const fetchSectionData = async (section: Section) => {
     console.log(`fetch ${section.id}`)
@@ -341,7 +355,11 @@ const fetchSectionsData = async (sections: Section[]) => {
 const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')
 
 setPixelBtn.onclick = async () => {
-    userSetPixel(canvasState.reticle.screenPixel, 0, canvasState)
+    userSetPixel(
+        canvasState.reticle.screenPixel,
+        colorPicker.curColorChoice.id,
+        canvasState
+    )
 }
 
 const setPixelInSection = (
@@ -358,7 +376,7 @@ const setPixelInSection = (
 
 const userSetPixel = (
     screenPixel: [number, number],
-    color: number,
+    colorId: number,
     canvasState: CanvasState
 ) => {
     // TODO: think about what to do when this isn't a whole value;
@@ -400,10 +418,10 @@ const userSetPixel = (
     const idx =
         width * (virtualPixel[1] - section.topLeft[1]) +
         (virtualPixel[0] - section.topLeft[0])
-    setPixelInSection(section, idx, color)
+    setPixelInSection(section, idx, colorId)
 
     // Inform server
-    socket.emit('set_pixel', [section.id, idx, color])
+    socket.emit('set_pixel', [section.id, idx, colorId])
 }
 
 // TODO: think about making reticle a bit more "sticky"

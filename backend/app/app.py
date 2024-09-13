@@ -79,11 +79,18 @@ def create_app():
     scheduler.add_job(handle_redis_messages, 'interval', seconds=0.1)
     scheduler.start()
 
+    colors = [{'id': 0, 'rgb': [0, 0, 0]}, {'id': 1, 'rgb': [255, 255, 255]}]
+
     @cross_origin
     @app.route('/bits')
     def get_img():
         app.logger.info(len(redis.get(bitfield)))
         return redis.get(bitfield)
+
+    @cross_origin
+    @app.route('/colors')
+    def get_colors():
+        return colors
 
     @cross_origin
     @app.route('/sections')

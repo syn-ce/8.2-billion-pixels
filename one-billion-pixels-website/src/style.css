@@ -42,6 +42,30 @@ h1 {
     height: 100%;
 }
 
+#color-picker {
+    position: absolute;
+    bottom: 10%;
+    width: fit-content;
+    max-width: 50%;
+    height: fit-content;
+    background-color: teal;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap-reverse;
+}
+
+.color-choice {
+    border: 1px solid transparent;
+}
+
+.color-choice:hover {
+    cursor: pointer;
+}
+
+.color-choice.active {
+    border: 1px solid red;
+}
+
 #set-pixel-btn {
     position: absolute;
     right: 10%;
