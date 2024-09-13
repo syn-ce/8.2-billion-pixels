@@ -74,6 +74,7 @@ def create_app():
         if message_count > 0:
             app.logger.info(f'Processed {message_count} messages')
 
+    # TODO: when using multiple workers multiple schedulers are initialized, leading to the same message being processed multiple times -> bad
     scheduler = BackgroundScheduler()
     scheduler.add_job(handle_redis_messages, 'interval', seconds=0.1)
     scheduler.start()
