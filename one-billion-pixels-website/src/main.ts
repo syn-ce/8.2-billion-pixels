@@ -503,27 +503,4 @@ const addZoomToCanvas = (canvasState: CanvasState) => {
 addPanToCanvas(canvasState)
 addZoomToCanvas(canvasState)
 
-// Current aspect ratio
-
-const fetchImageData = async (context: CanvasRenderingContext2D) => {
-    const buffer = await (
-        await fetch('http://localhost:5000/bits')
-    ).arrayBuffer()
-    const bytes = new Uint8Array(buffer)
-
-    const imgData = context.createImageData(canvas.width, canvas.height)
-    for (let i = 0; i < bytes.length; i++) {
-        let bits = bytes[i]
-        for (let j = 0; j < 8; j++) {
-            const color = (bits & 1) == 1 ? 255 : 0
-            imgData.data[i * 32 + j * 4] = color
-            imgData.data[i * 32 + j * 4 + 1] = color
-            imgData.data[i * 32 + j * 4 + 2] = color
-            imgData.data[i * 32 + j * 4 + 3] = 255
-            bits >>= 1
-        }
-    }
-    context.putImageData(imgData, 0, 0)
-}
-
 drawSections(canvasState, sections)
