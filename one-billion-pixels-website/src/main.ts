@@ -24,6 +24,18 @@ socket.on('poll', (data) => {
     socket.emit('active')
 })
 
+socket.on(
+    'set-pixel',
+    (data: { sectionId: number; pixelIdx: number; color: number }) => {
+        console.log(`set-pixel: ${JSON.stringify(data)}`)
+        setPixelInSection(
+            canvasState.sections.get(data.sectionId)!,
+            data.pixelIdx,
+            data.color
+        )
+    }
+)
+
 const subscribeToSections = (ids: number[]) => {
     if (ids.length == 0) return
     socket.emit('subscribe', ids)
@@ -329,28 +341,22 @@ const fetchSectionsData = async (sections: Section[]) => {
 const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')
 
 setPixelBtn.onclick = async () => {
-    setPixel(canvasState.reticle.screenPixel, 0, canvasState)
+    userSetPixel(canvasState.reticle.screenPixel, 0, canvasState)
 }
 
 const setPixelInSection = (
     section: Section,
-    virtualPixel: [number, number],
+    pixelIdx: number,
     color: number
 ) => {
-    const width = section.botRight[0] - section.topLeft[0]
-    const idx =
-        width * (virtualPixel[1] - section.topLeft[1]) +
-        (virtualPixel[0] - section.topLeft[0])
-
-    socket.emit('set_pixel', [section.id, idx, color])
-    const byteIdx = Math.floor(idx / 8)
-    const bitIdx = idx % 8
+    const byteIdx = Math.floor(pixelIdx / 8)
+    const bitIdx = pixelIdx % 8
 
     if (color == 0) section.data[byteIdx] &= 255 ^ ((1 << 7) >> bitIdx)
     else section.data[byteIdx] |= (1 << 7) >> bitIdx
 }
 
-const setPixel = (
+const userSetPixel = (
     screenPixel: [number, number],
     color: number,
     canvasState: CanvasState
@@ -388,7 +394,16 @@ const setPixel = (
     virtualPixel[0] = Math.floor(virtualPixel[0])
     virtualPixel[1] = Math.floor(virtualPixel[1])
     const section = canvasState.sections.get(sectionId)!
-    setPixelInSection(section, virtualPixel, color)
+
+    // Set pixel in section
+    const width = section.botRight[0] - section.topLeft[0]
+    const idx =
+        width * (virtualPixel[1] - section.topLeft[1]) +
+        (virtualPixel[0] - section.topLeft[0])
+    setPixelInSection(section, idx, color)
+
+    // Inform server
+    socket.emit('set_pixel', [section.id, idx, color])
 }
 
 // TODO: think about making reticle a bit more "sticky"
