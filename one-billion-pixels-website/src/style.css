@@ -38,8 +38,16 @@ h1 {
 }
 
 #clicker-canvas {
-    width: 100%;
-    height: 100%;
+    margin: auto;
+}
+
+#screen-frame {
+    position: absolute;
+    width: 400px;
+    height: 225px;
+    margin: auto;
+    border: 10px solid black;
+    pointer-events: none;
 }
 
 #color-picker {
