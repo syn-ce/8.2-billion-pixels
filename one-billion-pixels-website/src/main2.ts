@@ -3,18 +3,21 @@ import './style.css'
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
 const ctx = canvas.getContext('2d')!
 const screenFrame = <HTMLDivElement>document.getElementById('screen-frame')
+const panZoomWrapper = <HTMLDivElement>(
+    document.getElementById('pan-zoom-wrapper')
+)
 
 const canvasState = {
     panning: false,
+    maxZoom: 50,
+    minZoom: 1,
     prevMousePos: [0, 0],
-    scale: 1,
+    scale: 1 / 50,
     offset: [0, 0],
     contentOffset: [0, 0],
-    widthBufferSize: 0,
-    heightBufferSize: 0,
 }
 
-const canvasScale = 1
+canvas.style.transform = `scale(${canvasState.maxZoom})`
 
 canvas.onmousedown = (evt) => {
     canvasState.panning = true
@@ -23,7 +26,7 @@ canvas.onmousedown = (evt) => {
 
 const setCanvasTransform = () => {
     checkBuffers()
-    canvas.style.transform = `translate(${canvasState.offset[0]}px, ${canvasState.offset[1]}px) scale(${canvasState.scale})`
+    panZoomWrapper.style.transform = `translate(${canvasState.offset[0]}px, ${canvasState.offset[1]}px) scale(${canvasState.scale})`
 }
 
 canvas.onmousemove = (evt) => {
@@ -33,10 +36,6 @@ canvas.onmousemove = (evt) => {
         evt.y - canvasState.prevMousePos[1],
     ]
 
-    // Difference in virtual space
-    diff[0] /= canvasScale
-    diff[1] /= canvasScale
-
     canvasState.offset[0] += diff[0]
     canvasState.offset[1] += diff[1]
     canvasState.prevMousePos = [evt.x, evt.y]
@@ -44,17 +43,30 @@ canvas.onmousemove = (evt) => {
 }
 
 const checkBuffers = () => {
+    const bufferMultiplier = canvasState.scale * canvasState.maxZoom
+
     if (
-        canvasState.widthBufferSize - canvasState.offset[0] <= 0 ||
-        canvasState.widthBufferSize + canvasState.offset[0] <= 0 ||
-        canvasState.heightBufferSize - canvasState.offset[1] <= 0 ||
-        canvasState.heightBufferSize + canvasState.offset[1] <= 0
+        (bufferMultiplier * canvas.width) / 2 -
+            screenFrame.clientWidth / 2 -
+            canvasState.offset[0] <=
+            0 ||
+        (bufferMultiplier * canvas.width) / 2 -
+            screenFrame.clientWidth / 2 +
+            canvasState.offset[0] <=
+            0 ||
+        (bufferMultiplier * canvas.height) / 2 -
+            screenFrame.clientHeight / 2 -
+            canvasState.offset[1] <=
+            0 ||
+        (bufferMultiplier * canvas.height) / 2 -
+            screenFrame.clientHeight / 2 +
+            canvasState.offset[1] <=
+            0
     ) {
         // Center canvas
         // Need to adjust content
-
-        canvasState.contentOffset[0] += canvasState.offset[0]
-        canvasState.contentOffset[1] += canvasState.offset[1]
+        canvasState.contentOffset[0] += canvasState.offset[0] / bufferMultiplier
+        canvasState.contentOffset[1] += canvasState.offset[1] / bufferMultiplier
         drawImgWithOffset(img, canvasState.contentOffset)
         canvasState.offset = [0, 0]
     }
@@ -69,7 +81,24 @@ canvas.onmouseleave = (evt) => {
 }
 
 canvas.onwheel = (evt) => {
-    canvasState.scale *= evt.deltaY < 0 ? 1.2 : 1 / 1.2
+    const zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
+    const canvBoundRect = canvas.getBoundingClientRect()
+
+    // Pixels from zoomPoint to canvas center
+    const diffToCenter = [
+        canvBoundRect.left + canvBoundRect.width / 2 - evt.x,
+        canvBoundRect.top + canvBoundRect.height / 2 - evt.y,
+    ]
+
+    // Difference in pixels from zoomPoint to canvas center after zoom (compared to before)
+    const translation = [
+        diffToCenter[0] * (zoomFactor - 1),
+        diffToCenter[1] * (zoomFactor - 1),
+    ]
+
+    canvasState.scale *= zoomFactor
+    canvasState.offset[0] += translation[0]
+    canvasState.offset[1] += translation[1]
     setCanvasTransform()
 }
 
@@ -80,12 +109,12 @@ const drawImgWithOffset = (img: HTMLImageElement, offset: number[]) => {
 const drawImgInitial = () => {
     const img = new Image()
     img.onload = function () {
-        canvasState.widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
-        canvasState.heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
-        canvas.width = screenFrame.clientWidth + canvasState.widthBufferSize * 2
-        canvas.height =
-            screenFrame.clientHeight + canvasState.heightBufferSize * 2
+        const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
+        const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
+        canvas.width = screenFrame.clientWidth + widthBufferSize * 2
+        canvas.height = screenFrame.clientHeight + heightBufferSize * 2
         ctx.drawImage(img, canvasState.offset[0], canvasState.offset[1])
+        setCanvasTransform()
     }
 
     img.src = '../img.png'
