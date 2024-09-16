@@ -12,6 +12,8 @@ export class SectionCanvas {
     maxZoom: number
     minZoom: number
     scale: number
+    maxScale: number
+    minScale: number
     offset: [number, number]
     contentOffset: [number, number]
     reticle: Reticle
@@ -34,6 +36,8 @@ export class SectionCanvas {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
         this.scale = 1 / 50
+        this.maxScale = 1
+        this.minScale = 1 / 50
         this.panning = false
         this.prevPanMousePos = [-1, -1] // Could be anything
         this.maxZoom = 50
@@ -49,9 +53,18 @@ export class SectionCanvas {
 
         const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
         const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
-        this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2
-        this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2
+
+        //this.canvas.style.width = `${
+        //    screenFrame.clientWidth + widthBufferSize * 2
+        //}px`
+        //this.canvas.style.height = `${
+        //    screenFrame.clientHeight + heightBufferSize * 2
+        //}px`
+        this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2 //* devicePixelRatio
+        this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2 //* devicePixelRatio
+
         this.canvas.style.transform = `scale(${this.maxZoom})`
+        this.reticle.htmlElement.style.transform = `scale(${this.maxZoom})`
 
         addPanZoomToSectionCanvas(this)
 
@@ -210,6 +223,7 @@ export class SectionCanvas {
     setCanvasTransform = () => {
         this.checkBuffers()
         this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.scale})`
+        this.reticle.update(this)
     }
 
     checkBuffers = () => {

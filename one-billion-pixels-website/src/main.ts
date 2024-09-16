@@ -18,6 +18,9 @@ const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
 //canvas.height = window.innerHeight //* devicePixelRatio
 
 const reticle = document.getElementById('reticle')!
+const reticleWrapper = <HTMLDivElement>(
+    document.getElementById('reticle-wrapper')
+)
 
 const screenFrame = <HTMLDivElement>document.getElementById('screen-frame')
 const panZoomWrapper = <HTMLDivElement>(
@@ -36,7 +39,7 @@ console.log(HEIGHT)
 const sectionCanvas: SectionCanvas = new SectionCanvas(
     canvas,
     1,
-    new Reticle(reticle, [WIDTH / 2, HEIGHT / 2]),
+    new Reticle(reticle, [WIDTH / 2, HEIGHT / 2], reticleWrapper),
     new Map(sections.map((section) => [section.id, section])),
     new Set(),
     socket,

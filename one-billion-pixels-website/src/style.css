@@ -48,7 +48,7 @@ h1 {
     width: 800px;
     height: 500px;
     margin: auto;
-    border: 10px solid black;
+    border: 5px solid black;
     pointer-events: none;
 }
 
@@ -82,12 +82,14 @@ h1 {
     bottom: 10%;
 }
 
+#reticle-wrapper {
+    pointer-events: none;
+}
+
 #reticle {
-    position: absolute;
-    top: 50%;
     width: 1px;
     height: 1px;
-    background-color: black;
+    background-color: red;
 }
 
 #app {

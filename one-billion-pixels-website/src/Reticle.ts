@@ -3,40 +3,56 @@ import { SectionCanvas } from './SectionCanvas'
 export class Reticle {
     screenPixel: [number, number]
     htmlElement: HTMLElement
+    wrapper: HTMLDivElement
     constructor(
         htmlElement: HTMLElement,
-        virtualPixel: [number, number] = [0, 0]
+        virtualPixel: [number, number] = [0, 0],
+        wrapper: HTMLDivElement
     ) {
         this.screenPixel = virtualPixel
         this.htmlElement = htmlElement
+        this.wrapper = wrapper
     }
 
-    // TODO: think about making reticle a bit more "sticky"
-    // Update size of reticle and snap reticle's position to pixel closest to screen center
-    update = (sectionCanvas: SectionCanvas) => {
-        const screenCenter: [number, number] = [
-            sectionCanvas.canvas.width / 2,
-            sectionCanvas.canvas.height / 2,
-        ]
-        const pixelValues = sectionCanvas.screenToVirtualSpace(
-            [screenCenter],
-            sectionCanvas
-        )[0]
-        // Round to nearest
-        pixelValues[0] = Math.round(pixelValues[0])
-        pixelValues[1] = Math.round(pixelValues[1])
+    update(sectionCanvas: SectionCanvas) {
+        // Get center
+        const canvBoundRect = sectionCanvas.canvas.getBoundingClientRect()
+        const frameBoundRect = sectionCanvas.screenFrame.getBoundingClientRect()
 
-        // Convert coordinates of that virtual pixel to screen space
-        const screenPixelCoords = sectionCanvas.virtualToScreenSpaceIntegers([
-            pixelValues,
-        ])[0]
-        screenPixelCoords[0] = screenPixelCoords[0] - sectionCanvas.scale
-        screenPixelCoords[1] = screenPixelCoords[1] - sectionCanvas.scale
-        this.screenPixel = screenPixelCoords
-        // Update size of reticle and move it to this position
-        this.htmlElement.style.width = `${sectionCanvas.scale}px`
-        this.htmlElement.style.height = `${sectionCanvas.scale}px`
-        this.htmlElement.style.left = `${screenPixelCoords[0]}px`
-        this.htmlElement.style.top = `${screenPixelCoords[1]}px`
+        const screenPixelsPerCanvasPixel =
+            sectionCanvas.scale * sectionCanvas.maxZoom
+
+        const frameCenter = [
+            frameBoundRect.left + frameBoundRect.width / 2,
+            frameBoundRect.top + frameBoundRect.height / 2,
+        ]
+
+        // Translate frame center into canvas coordinates (not section-coords, but actual canvas coords)
+        const canvasCoords = [
+            (frameCenter[0] - canvBoundRect.left) / screenPixelsPerCanvasPixel,
+            (frameCenter[1] - canvBoundRect.top) / screenPixelsPerCanvasPixel,
+        ]
+
+        // Round to nearest pixel
+        canvasCoords[0] = Math.round(canvasCoords[0])
+        canvasCoords[1] = Math.round(canvasCoords[1])
+
+        const screenCoords = [
+            (canvasCoords[0] * screenPixelsPerCanvasPixel -
+                canvBoundRect.width / 2) /
+                sectionCanvas.scale +
+                sectionCanvas.canvas.width / 2,
+            (canvasCoords[1] * screenPixelsPerCanvasPixel -
+                canvBoundRect.height / 2) /
+                sectionCanvas.scale -
+                sectionCanvas.canvas.height / 2,
+        ]
+
+        // Need to offset by half of a canvas-pixel's size (which will equal half of reticle's size)
+        // TODO: this assumes that the minZoom is 1 and the scale is adjusted accordingly (minScale 1 / maxZoom, maximum 1)
+        screenCoords[0] += sectionCanvas.maxZoom / 2
+        screenCoords[1] += sectionCanvas.maxZoom / 2
+
+        this.wrapper.style.transform = `translate(${screenCoords[0]}px, ${screenCoords[1]}px)`
     }
 }
