@@ -45,8 +45,8 @@ h1 {
 
 #screen-frame {
     position: absolute;
-    width: 400px;
-    height: 225px;
+    width: 800px;
+    height: 500px;
     margin: auto;
     border: 10px solid black;
     pointer-events: none;

@@ -116,11 +116,9 @@ export class SectionCanvas {
         this.socket.emit('unsubscribe', ids)
     }
 
-    updateSectionsSubscriptions = async (
-        requiredSections: Set<number>,
-        canvasState: SectionCanvas
-    ) => {
-        const curSections = canvasState.subscribedSectionIds
+    // Returns an array of the old subscriptions
+    updateSectionsSubscriptions = (requiredSections: Set<number>) => {
+        const curSections = this.subscribedSectionIds
         const sectionIdsToRemove: Set<number> = new Set()
         // Remove sections which are no longer needed
         for (const id of curSections) {
@@ -133,6 +131,8 @@ export class SectionCanvas {
         sectionIdsToRemove.forEach((id, _, set) => curSections.delete(id))
         this.unsubscribeFromSections(Array.from(sectionIdsToRemove))
 
+        const oldRemainingIds = new Set(curSections)
+
         // Add new sections
         const sectionIdsToAdd: Set<number> = new Set()
         for (const id of requiredSections) {
@@ -143,12 +143,8 @@ export class SectionCanvas {
         }
         console.log(`Add ${sectionIdsToAdd.size} sections`)
         this.subscribeToSections(Array.from(sectionIdsToAdd))
-        // Fetch sections data
-        await fetchSectionsData(
-            Array.from(sectionIdsToAdd).map(
-                (id) => canvasState.sections.get(id)!
-            )
-        )
+        this.subscribedSectionIds = curSections
+        return [sectionIdsToAdd, oldRemainingIds]
     }
 
     determineRequiredSections = () => {
@@ -161,12 +157,6 @@ export class SectionCanvas {
             -this.contentOffset[0] - sectionBufferSize[0],
             -this.contentOffset[1] - sectionBufferSize[1],
         ]
-
-        console.log(
-            `${contentTopLeft[0]},${contentTopLeft[1]} bis ${
-                contentTopLeft[0] + this.canvas.width
-            },${contentTopLeft[1] + this.canvas.height}`
-        )
 
         const reqSectionsIds: Set<number> = new Set()
         for (const [id, section] of this.sections) {
@@ -194,36 +184,24 @@ export class SectionCanvas {
 
     // TODO: panning is a bit janky because of aliasing
     drawSections = async () => {
-        // Filter sections which are not in view
+        // Filter sections which should not be active
         const requiredSectionsIds = this.determineRequiredSections()
-        //const reqSectionsIds = new Set(
-        //    Array.from(this.sections.values()).map((section) => section.id)
-        //)
 
-        // Subscribe to new, unsubscribe from old
-        // TODO: awaiting this leads to noticeable delay in updating the canvas - this should not happen
-        // TODO: Maybe work with a callback
-        this.updateSectionsSubscriptions(requiredSectionsIds, this)
-
-        console.log(this.contentOffset)
+        const [newlyAddedIds, oldRemainingIds] =
+            this.updateSectionsSubscriptions(requiredSectionsIds)
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-
-        this.subscribedSectionIds.forEach((sectionId) => {
+        // Draw remaining old ones
+        oldRemainingIds.forEach((sectionId) => {
             const section = this.sections.get(sectionId)!
-
-            //console.log(
-            //    `Putting ${section.topLeft[0] + this.contentOffset[0]} ${
-            //        section.topLeft[1] + this.contentOffset[1]
-            //    }`
-            //)
-
-            this.ctx.putImageData(
-                section.imgData,
-                section.topLeft[0] + this.contentOffset[0],
-                section.topLeft[1] + this.contentOffset[1]
-            )
+            section.drawOnSectionCanvas(this)
         })
+
+        // Fetch data of newly added ones
+        fetchSectionsData(
+            Array.from(newlyAddedIds).map((id) => this.sections.get(id)!),
+            (section) => section.drawOnSectionCanvas(this)
+        )
 
         //// Update reticle
         //this.reticle.update(this)

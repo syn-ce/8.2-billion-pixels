@@ -46,12 +46,16 @@ export const fetchSectionData = async (sectionId: number) => {
     return bytes
 }
 
-export const fetchSectionsData = async (sections: Section[]) => {
+export const fetchSectionsData = async (
+    sections: Section[],
+    callback: (section: Section) => void
+) => {
     return Promise.all(
         Array.from(
             sections.map(async (section) => {
                 const data = await fetchSectionData(section.id)
                 section.setData(data)
+                callback(section)
             })
         )
     )

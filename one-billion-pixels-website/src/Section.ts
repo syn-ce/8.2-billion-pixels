@@ -1,3 +1,5 @@
+import { SectionCanvas } from './SectionCanvas'
+
 export interface SectionAttributes {
     topLeft: [number, number]
     botRight: [number, number]
@@ -27,6 +29,14 @@ export class Section implements SectionAttributes {
         this.imgData = new ImageData(1, 1) // Empty default
     }
 
+    drawOnSectionCanvas = (sectionCanvas: SectionCanvas) => {
+        sectionCanvas.ctx.putImageData(
+            this.imgData,
+            this.topLeft[0] + sectionCanvas.contentOffset[0],
+            this.topLeft[1] + sectionCanvas.contentOffset[1]
+        )
+    }
+
     setData = (data: Uint8Array) => {
         this.data = data
         const imgData = new ImageData(this.width, this.height)
@@ -44,8 +54,8 @@ export class Section implements SectionAttributes {
                 if (color == 0) black++
                 else white++
                 imgData.data[imgDataIdx] = color
-                imgData.data[imgDataIdx + 1] = color + this.id * 10 // Color offset for debugging purposes
-                imgData.data[imgDataIdx + 2] = color + this.id * 10
+                imgData.data[imgDataIdx + 1] = color + this.id * 2 // Color offset for debugging purposes
+                imgData.data[imgDataIdx + 2] = color + this.id * 2
                 imgData.data[imgDataIdx + 3] = 255
                 imgDataIdx += 4
             }
