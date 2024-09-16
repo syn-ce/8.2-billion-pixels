@@ -35,7 +35,7 @@ console.log(HEIGHT)
 const sectionCanvas: SectionCanvas = new SectionCanvas(
     canvas,
     1,
-    new Reticle(reticle, [WIDTH / 2, HEIGHT / 2], reticleWrapper),
+    new Reticle(reticle, reticleWrapper),
     new Map(sections.map((section) => [section.id, section])),
     new Set(),
     socket,
@@ -52,7 +52,7 @@ const colorPicker = new ColorPicker(
 const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')
 setPixelBtn.onclick = async () => {
     sectionCanvas.userSetPixel(
-        sectionCanvas.reticle.screenPixel,
+        sectionCanvas.reticle.curCanvasPixel,
         colorPicker.curColorChoice.id,
         sectionCanvas
     )

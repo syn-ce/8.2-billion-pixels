@@ -84,25 +84,26 @@ export class SectionCanvas {
     }
 
     userSetPixel = (
-        screenPixel: [number, number],
+        canvasPixel: [number, number],
         colorId: number,
         sectionCanvas: SectionCanvas
     ) => {
-        const canvBoundRect = this.canvas.getBoundingClientRect()
-
-        const canvasCoords = [
-            screenPixel[0] - canvBoundRect.left,
-            screenPixel[1] - canvBoundRect.top,
+        const sectionCoords = [
+            canvasPixel[0] - this.contentOffset[0],
+            canvasPixel[1] - this.contentOffset[1],
         ]
 
+        // TODO: maybe think about doing something more efficient here, but at the same time
+        // how many concurrent subscribed sections will one have? More than 100 (even more than ~ 10)
+        // for an average full hd screen seems unlikely with what I have in mind right now
         const sectionId = Array.from(sectionCanvas.subscribedSectionIds).find(
             (id) => {
                 const sec = sectionCanvas.sections.get(id)!
                 return (
-                    sec.topLeft[0] <= canvasCoords[0] &&
-                    sec.topLeft[1] <= canvasCoords[1] &&
-                    canvasCoords[0] < sec.botRight[0] &&
-                    canvasCoords[1] < sec.botRight[1]
+                    sec.topLeft[0] <= sectionCoords[0] &&
+                    sec.topLeft[1] <= sectionCoords[1] &&
+                    sectionCoords[0] < sec.botRight[0] &&
+                    sectionCoords[1] < sec.botRight[1]
                 )
             }
         )!
@@ -110,10 +111,14 @@ export class SectionCanvas {
         const section = sectionCanvas.sections.get(sectionId)!
 
         const sectionPixelIdx =
-            (canvasCoords[1] - section.topLeft[1]) * section.width +
-            (canvasCoords[0] - section.topLeft[0])
+            (sectionCoords[1] - section.topLeft[1]) * section.width +
+            (sectionCoords[0] - section.topLeft[0])
+
         // Set pixel in section
         section.setPixel(section, sectionPixelIdx, colorId)
+
+        // Redraw section onto canvas
+        section.drawOnSectionCanvas(this)
 
         // Inform server
         this.socket.emit('set_pixel', [section.id, sectionPixelIdx, colorId])

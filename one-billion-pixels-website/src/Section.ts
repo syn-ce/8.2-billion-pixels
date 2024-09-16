@@ -73,7 +73,7 @@ export class Section implements SectionAttributes {
         // Set bit in imgData
         if (color == 1) color = 255
         this.imgData.data[pixelIdx * 4] = color
-        this.imgData.data[pixelIdx * 4] = color
-        this.imgData.data[pixelIdx * 4] = color
+        this.imgData.data[pixelIdx * 4 + 1] = color
+        this.imgData.data[pixelIdx * 4 + 2] = color
     }
 }

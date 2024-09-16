@@ -1,17 +1,13 @@
 import { SectionCanvas } from './SectionCanvas'
 
 export class Reticle {
-    screenPixel: [number, number]
     htmlElement: HTMLElement
     wrapper: HTMLDivElement
-    constructor(
-        htmlElement: HTMLElement,
-        virtualPixel: [number, number] = [0, 0],
-        wrapper: HTMLDivElement
-    ) {
-        this.screenPixel = virtualPixel
+    curCanvasPixel: [number, number] // The coordinates of the canvas pixel the reticle is currently positioned on
+    constructor(htmlElement: HTMLElement, wrapper: HTMLDivElement) {
         this.htmlElement = htmlElement
         this.wrapper = wrapper
+        this.curCanvasPixel = [0, 0] // Random defaults
     }
 
     update(sectionCanvas: SectionCanvas) {
@@ -36,6 +32,8 @@ export class Reticle {
         // Round to nearest pixel
         canvasCoords[0] = Math.round(canvasCoords[0])
         canvasCoords[1] = Math.round(canvasCoords[1])
+
+        this.curCanvasPixel = [canvasCoords[0], canvasCoords[1]]
 
         const screenCoords = [
             (canvasCoords[0] * screenPixelsPerCanvasPixel -
