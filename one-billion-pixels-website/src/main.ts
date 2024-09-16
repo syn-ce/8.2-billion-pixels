@@ -1,6 +1,5 @@
 import { ColorChoice, ColorPicker } from './ColorPicker'
-import { addPanZoomToSectionCanvas } from './PanZoom'
-import { fetchBits, fetchColorChoices, fetchSectionsConfig } from './requests'
+import { fetchColorChoices, fetchSectionsConfig } from './requests'
 import { Reticle } from './Reticle'
 import { Section } from './Section'
 import { SectionCanvas } from './SectionCanvas'
@@ -8,9 +7,6 @@ import { setupSocket } from './socket'
 import './style.css'
 
 const socket = setupSocket()
-
-const allBits = await fetchBits()
-console.log(`nr of bits = ${allBits.length * 8}`)
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
 //console.log(screen.width)

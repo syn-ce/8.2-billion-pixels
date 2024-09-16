@@ -3,12 +3,6 @@ import { Section, SectionAttributes } from './Section'
 
 const URL = '/api'
 
-// Canvas data
-export const fetchBits = async () => {
-    const buffer = await (await fetch(`${URL}/bits`)).arrayBuffer()
-    return new Uint8Array(buffer)
-}
-
 export const fetchColorChoices = async () => {
     const colorChoices: ColorChoice[] = await (
         await fetch(`${URL}/colors`)
