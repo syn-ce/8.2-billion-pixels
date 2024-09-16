@@ -35,7 +35,11 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
 const addZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onwheel = (evt) => {
-        const zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
+        let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
+        if (sectionCanvas.scale * zoomFactor > sectionCanvas.maxScale)
+            zoomFactor = sectionCanvas.maxScale / sectionCanvas.scale
+        else if (sectionCanvas.scale * zoomFactor < sectionCanvas.minScale)
+            zoomFactor = sectionCanvas.minScale / sectionCanvas.scale
         const canvBoundRect = canvas.getBoundingClientRect()
 
         // Pixels from zoomPoint to canvas center
