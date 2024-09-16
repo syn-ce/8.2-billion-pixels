@@ -36,27 +36,6 @@ const addZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onwheel = (evt) => {
         let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
-        if (sectionCanvas.scale * zoomFactor > sectionCanvas.maxScale)
-            zoomFactor = sectionCanvas.maxScale / sectionCanvas.scale
-        else if (sectionCanvas.scale * zoomFactor < sectionCanvas.minScale)
-            zoomFactor = sectionCanvas.minScale / sectionCanvas.scale
-        const canvBoundRect = canvas.getBoundingClientRect()
-
-        // Pixels from zoomPoint to canvas center
-        const diffToCenter = [
-            canvBoundRect.left + canvBoundRect.width / 2 - evt.x,
-            canvBoundRect.top + canvBoundRect.height / 2 - evt.y,
-        ]
-
-        // Difference in pixels from zoomPoint to canvas center after zoom (compared to before)
-        const translation = [
-            diffToCenter[0] * (zoomFactor - 1),
-            diffToCenter[1] * (zoomFactor - 1),
-        ]
-
-        sectionCanvas.scale *= zoomFactor
-        sectionCanvas.offset[0] += translation[0]
-        sectionCanvas.offset[1] += translation[1]
-        sectionCanvas.setCanvasTransform()
+        sectionCanvas.zoomInto([evt.x, evt.y], zoomFactor)
     }
 }

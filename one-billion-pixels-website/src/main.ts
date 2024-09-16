@@ -5,6 +5,7 @@ import { Section } from './Section'
 import { SectionCanvas } from './SectionCanvas'
 import { setupSocket } from './socket'
 import './style.css'
+import { ZoomSlider } from './ZoomSlider'
 
 const socket = setupSocket()
 
@@ -31,6 +32,11 @@ console.log(sections)
 console.log(WIDTH)
 console.log(HEIGHT)
 
+const zoomSlider = new ZoomSlider(
+    <HTMLInputElement>document.getElementById('zoom-slider'),
+    <HTMLLabelElement>document.getElementById('zoom-slider-label')
+)
+
 // Start with canvas centered in middle of screen
 const sectionCanvas: SectionCanvas = new SectionCanvas(
     canvas,
@@ -40,7 +46,9 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     new Set(),
     socket,
     screenFrame,
-    panZoomWrapper
+    panZoomWrapper,
+    50,
+    zoomSlider
 )
 
 const colors: ColorChoice[] = await fetchColorChoices()

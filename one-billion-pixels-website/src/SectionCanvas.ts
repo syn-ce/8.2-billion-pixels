@@ -3,6 +3,7 @@ import { Reticle } from './Reticle'
 import { Section } from './Section'
 import { fetchSectionsData } from './requests'
 import { addPanZoomToSectionCanvas } from './PanZoom'
+import { ZoomSlider } from './ZoomSlider'
 
 export class SectionCanvas {
     canvas: HTMLCanvasElement
@@ -22,6 +23,7 @@ export class SectionCanvas {
     socket: Socket
     screenFrame: HTMLDivElement
     panZoomWrapper: HTMLDivElement
+    zoomSlider: ZoomSlider
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -31,17 +33,25 @@ export class SectionCanvas {
         subscribedSectionIds: Set<number>,
         socket: Socket,
         screenFrame: HTMLDivElement,
-        panZoomWrapper: HTMLDivElement
+        panZoomWrapper: HTMLDivElement,
+        maxZoom: number,
+        zoomSlider: ZoomSlider
     ) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
-        this.scale = 1 / 50
-        this.maxScale = 1
-        this.minScale = 1 / 50
         this.panning = false
         this.prevPanMousePos = [-1, -1] // Could be anything
-        this.maxZoom = 50
+        this.maxZoom = maxZoom
         this.minZoom = 1
+        this.scale = 1 / this.maxZoom
+        this.maxScale = 1
+        this.minScale = 1 / this.maxZoom
+        this.zoomSlider = zoomSlider
+        this.zoomSlider.min = 1
+        this.zoomSlider.max = this.maxZoom
+        this.zoomSlider.value = this.scale * this.maxZoom
+        this.zoomSlider.step = 0.01
+
         this.offset = [0, 0]
         this.contentOffset = [0, 0]
         this.reticle = reticle
@@ -67,6 +77,15 @@ export class SectionCanvas {
         this.reticle.htmlElement.style.transform = `scale(${this.maxZoom})`
 
         addPanZoomToSectionCanvas(this)
+
+        this.zoomSlider.addInputCallback((zoomValue) => {
+            const screenCenter: [number, number] = [
+                window.innerWidth / 2,
+                window.innerHeight / 2,
+            ]
+            const factor = zoomValue / (this.scale * this.maxZoom)
+            this.zoomInto(screenCenter, factor)
+        })
 
         socket.on(
             'set-pixel',
@@ -229,6 +248,7 @@ export class SectionCanvas {
         this.checkBuffers()
         this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.scale})`
         this.reticle.update(this)
+        this.zoomSlider.value = this.scale * this.maxZoom
     }
 
     checkBuffers = () => {
@@ -261,5 +281,33 @@ export class SectionCanvas {
             this.drawSections()
             this.offset = [0, 0]
         }
+    }
+
+    zoomInto = (screenCoords: [number, number], factor: number) => {
+        if (this.scale * factor > this.maxScale)
+            factor = this.maxScale / this.scale
+        else if (this.scale * factor < this.minScale)
+            factor = this.minScale / this.scale
+        const canvBoundRect = this.canvas.getBoundingClientRect()
+
+        // Pixels from zoomPoint to canvas center
+        const diffToCenter = [
+            canvBoundRect.left + canvBoundRect.width / 2 - screenCoords[0],
+            canvBoundRect.top + canvBoundRect.height / 2 - screenCoords[1],
+        ]
+
+        // Difference in pixels from zoomPoint to canvas center after zoom (compared to before)
+        const translation = [
+            diffToCenter[0] * (factor - 1),
+            diffToCenter[1] * (factor - 1),
+        ]
+
+        translation[0] = Math.round(translation[0])
+        translation[1] = Math.round(translation[1])
+
+        this.scale *= factor
+        this.offset[0] += translation[0]
+        this.offset[1] += translation[1]
+        this.setCanvasTransform()
     }
 }
