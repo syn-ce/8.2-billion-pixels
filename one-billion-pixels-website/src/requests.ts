@@ -16,14 +16,24 @@ export const fetchColorChoices = async () => {
     return colorChoices
 }
 
-export const fetchSections = async () => {
+export const fetchSectionsConfig = async () => {
     const res: [SectionAttributes] = await (
         await fetch(`${URL}/sections`)
     ).json()
 
-    return res.map(
-        (res) => new Section(res.topLeft, res.botRight, res.id, res.data)
-    )
+    const sections = []
+    for (let i = 0; i < res.length; i++) {
+        const sectionData = res[i]
+        sections.push(
+            new Section(
+                sectionData.topLeft,
+                sectionData.botRight,
+                sectionData.id
+            )
+        )
+    }
+
+    return sections
 }
 
 export const fetchSectionData = async (sectionId: number) => {
@@ -40,7 +50,8 @@ export const fetchSectionsData = async (sections: Section[]) => {
     return Promise.all(
         Array.from(
             sections.map(async (section) => {
-                section.data = await fetchSectionData(section.id)
+                const data = await fetchSectionData(section.id)
+                section.setData(data)
             })
         )
     )

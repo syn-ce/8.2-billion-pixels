@@ -13,53 +13,46 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
     }
     canvas.onmousemove = (evt) => {
         if (!sectionCanvas.panning) return
-        // Difference on screen
         const diff = [
             evt.x - sectionCanvas.prevPanMousePos[0],
             evt.y - sectionCanvas.prevPanMousePos[1],
         ]
 
-        // Difference in virtual space
-        diff[0] /= sectionCanvas.scale
-        diff[1] /= sectionCanvas.scale
-        // Adjust center
-        sectionCanvas.virtualCenter[0] -= diff[0]
-        sectionCanvas.virtualCenter[1] -= diff[1]
-        // Update
+        sectionCanvas.offset[0] += diff[0]
+        sectionCanvas.offset[1] += diff[1]
         sectionCanvas.prevPanMousePos = [evt.x, evt.y]
-        sectionCanvas.drawSections()
+        sectionCanvas.setCanvasTransform()
     }
     canvas.onmouseup = (evt) => {
         sectionCanvas.panning = false
     }
+
     canvas.onmouseleave = (evt) => {
         sectionCanvas.panning = false
     }
 }
 
 const addZoomToCanvas = (sectionCanvas: SectionCanvas) => {
-    sectionCanvas.canvas.onwheel = (evt) => {
-        // Diff from canvas (screen) center to zoom point in screen space
-        const scalingFactor = evt.deltaY < 0 ? 2.0 : 1 / 2.0
-        const virtualCenter = sectionCanvas.virtualCenter
-        const diff = [
-            evt.x - sectionCanvas.canvas.width / 2,
-            evt.y - sectionCanvas.canvas.height / 2,
-        ]
-        // Difference in virtual space
-        diff[0] /= sectionCanvas.scale
-        diff[1] /= sectionCanvas.scale
-        // Move virtual center to 0, then move zoom point to 0
-        let movedVirtualCenter: [number, number] = [-diff[0], -diff[1]]
-        // Scale up
-        movedVirtualCenter[0] /= scalingFactor
-        movedVirtualCenter[1] /= scalingFactor
-        // Move back
-        movedVirtualCenter[0] += virtualCenter[0] + diff[0]
-        movedVirtualCenter[1] += virtualCenter[1] + diff[1]
-        sectionCanvas.scale *= scalingFactor
+    const canvas = sectionCanvas.canvas
+    canvas.onwheel = (evt) => {
+        const zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
+        const canvBoundRect = canvas.getBoundingClientRect()
 
-        sectionCanvas.virtualCenter = movedVirtualCenter
-        sectionCanvas.drawSections()
+        // Pixels from zoomPoint to canvas center
+        const diffToCenter = [
+            canvBoundRect.left + canvBoundRect.width / 2 - evt.x,
+            canvBoundRect.top + canvBoundRect.height / 2 - evt.y,
+        ]
+
+        // Difference in pixels from zoomPoint to canvas center after zoom (compared to before)
+        const translation = [
+            diffToCenter[0] * (zoomFactor - 1),
+            diffToCenter[1] * (zoomFactor - 1),
+        ]
+
+        sectionCanvas.scale *= zoomFactor
+        sectionCanvas.offset[0] += translation[0]
+        sectionCanvas.offset[1] += translation[1]
+        sectionCanvas.setCanvasTransform()
     }
 }

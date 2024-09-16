@@ -40,6 +40,7 @@ h1 {
 #clicker-canvas {
     margin: auto;
     display: block; /* To prevent zoom-pan wrapper div from having excess height (bc of lineheight of canvas being added when (default) display: inline) */
+    image-rendering: pixelated;
 }
 
 #screen-frame {

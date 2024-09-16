@@ -2,38 +2,58 @@ import { Socket } from 'socket.io-client'
 import { Reticle } from './Reticle'
 import { Section } from './Section'
 import { fetchSectionsData } from './requests'
+import { addPanZoomToSectionCanvas } from './PanZoom'
 
 export class SectionCanvas {
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
-    virtualCenter: [number, number]
-    scale: number
     panning: boolean
     prevPanMousePos: [number, number]
+    maxZoom: number
+    minZoom: number
+    scale: number
+    offset: [number, number]
+    contentOffset: [number, number]
     reticle: Reticle
     sections: Map<number, Section>
     subscribedSectionIds: Set<number>
     socket: Socket
+    screenFrame: HTMLDivElement
+    panZoomWrapper: HTMLDivElement
 
     constructor(
         canvas: HTMLCanvasElement,
-        virtualCenter: [number, number],
         scale: number,
         reticle: Reticle,
         sections: Map<number, Section>,
         subscribedSectionIds: Set<number>,
-        socket: Socket
+        socket: Socket,
+        screenFrame: HTMLDivElement,
+        panZoomWrapper: HTMLDivElement
     ) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
-        this.virtualCenter = virtualCenter
-        this.scale = scale
+        this.scale = 1 / 50
         this.panning = false
         this.prevPanMousePos = [-1, -1] // Could be anything
+        this.maxZoom = 50
+        this.minZoom = 1
+        this.offset = [0, 0]
+        this.contentOffset = [0, 0]
         this.reticle = reticle
         this.sections = sections
         this.subscribedSectionIds = subscribedSectionIds
         this.socket = socket
+        this.screenFrame = screenFrame
+        this.panZoomWrapper = panZoomWrapper
+
+        const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
+        const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
+        this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2
+        this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2
+        this.canvas.style.transform = `scale(${this.maxZoom})`
+
+        addPanZoomToSectionCanvas(this)
 
         socket.on(
             'set-pixel',
@@ -55,134 +75,35 @@ export class SectionCanvas {
         colorId: number,
         sectionCanvas: SectionCanvas
     ) => {
-        // TODO: think about what to do when this isn't a whole value;
-        // The docs advise to only use integer values to improve performance
-        const screenPixelsPerPixel = sectionCanvas.scale
+        const canvBoundRect = this.canvas.getBoundingClientRect()
 
-        // Fill pixel on canvas
-        sectionCanvas.ctx.fillRect(
-            screenPixel[0],
-            screenPixel[1],
-            screenPixelsPerPixel,
-            screenPixelsPerPixel
-        )
+        const canvasCoords = [
+            screenPixel[0] - canvBoundRect.left,
+            screenPixel[1] - canvBoundRect.top,
+        ]
 
-        // TODO: worry about all of these bangs
-        // Apply update to section's data
-        // Determine correct section based on virtual pixel
-        const virtualPixel = sectionCanvas.screenToVirtualSpace(
-            [screenPixel],
-            sectionCanvas
-        )[0]
         const sectionId = Array.from(sectionCanvas.subscribedSectionIds).find(
             (id) => {
                 const sec = sectionCanvas.sections.get(id)!
                 return (
-                    sec.topLeft[0] <= virtualPixel[0] &&
-                    sec.topLeft[1] <= virtualPixel[1] &&
-                    virtualPixel[0] < sec.botRight[0] &&
-                    virtualPixel[1] < sec.botRight[1]
+                    sec.topLeft[0] <= canvasCoords[0] &&
+                    sec.topLeft[1] <= canvasCoords[1] &&
+                    canvasCoords[0] < sec.botRight[0] &&
+                    canvasCoords[1] < sec.botRight[1]
                 )
             }
         )!
 
-        // TODO: check whether flooring here is the correct thing, especially with fractional scaling
-        // Now that we've found the pixel, we can floor to the actual coordinates (could also do this before, but seems safer to do it after (numerical reasons))
-        virtualPixel[0] = Math.floor(virtualPixel[0])
-        virtualPixel[1] = Math.floor(virtualPixel[1])
         const section = sectionCanvas.sections.get(sectionId)!
 
+        const sectionPixelIdx =
+            (canvasCoords[1] - section.topLeft[1]) * section.width +
+            (canvasCoords[0] - section.topLeft[0])
         // Set pixel in section
-        const width = section.botRight[0] - section.topLeft[0]
-        const idx =
-            width * (virtualPixel[1] - section.topLeft[1]) +
-            (virtualPixel[0] - section.topLeft[0])
-        section.setPixel(section, idx, colorId)
+        section.setPixel(section, sectionPixelIdx, colorId)
 
         // Inform server
-        this.socket.emit('set_pixel', [section.id, idx, colorId])
-    }
-
-    virtualToScreenSpaceIntegers = (
-        points: [number, number][]
-    ): [number, number][] => {
-        return this.virtualToScreenSpace(points).map((point) => [
-            Math.ceil(point[0]),
-            Math.ceil(point[1]),
-        ])
-    }
-
-    virtualToScreenSpace = (points: [number, number][]): [number, number][] => {
-        let canvasCenter = [this.canvas.width / 2, this.canvas.height / 2]
-        let centerVirtual = this.virtualCenter
-        let ps: [number, number][] = []
-        for (const point of points) {
-            // Diff in virtual space
-            const diff = [
-                point[0] - centerVirtual[0],
-                point[1] - centerVirtual[1],
-            ]
-            // Diff on screen
-            diff[0] *= this.scale
-            diff[1] *= this.scale
-            ps.push([
-                // TODO: verify that ceil here doesn't mess things up
-                canvasCenter[0] + diff[0],
-                canvasCenter[1] + diff[1],
-            ])
-        }
-        return ps
-    }
-
-    screenToVirtualSpace = (
-        points: [number, number][],
-        canvasState: SectionCanvas
-    ): [number, number][] => {
-        //canvasState.virtualCenter
-        let canvasCenter = [
-            canvasState.canvas.width / 2,
-            canvasState.canvas.height / 2,
-        ]
-        let centerVirtual = canvasState.virtualCenter
-        let ps: [number, number][] = []
-        for (const point of points) {
-            // Diff on screen
-            const diff = [
-                point[0] - canvasCenter[0],
-                point[1] - canvasCenter[1],
-            ]
-            // Diff in virtual space
-            diff[0] /= canvasState.scale
-            diff[1] /= canvasState.scale
-            ps.push([centerVirtual[0] + diff[0], centerVirtual[1] + diff[1]])
-        }
-        return ps
-    }
-
-    // Determine all sections which we need to fetch
-    determineRequiredSections = (): Set<number> => {
-        // Determine edges in virtual space
-        const [topLeft, botRight] = this.screenToVirtualSpace(
-            [
-                [0, 0],
-                [this.canvas.width, this.canvas.height],
-            ],
-            this
-        )
-
-        // Filter sections
-        const filteredSections = Array.from(this.sections.values()).filter(
-            (section) =>
-                !(
-                    section.topLeft[0] >= botRight[0] ||
-                    section.botRight[0] <= topLeft[0] ||
-                    section.topLeft[1] >= botRight[1] ||
-                    section.botRight[1] <= topLeft[1]
-                )
-        )
-        console.log(`Req ${filteredSections.length} / ${this.sections.size}`)
-
-        return new Set(filteredSections.map((section) => section.id))
+        this.socket.emit('set_pixel', [section.id, sectionPixelIdx, colorId])
     }
 
     subscribeToSections = (ids: number[]) => {
@@ -230,21 +151,118 @@ export class SectionCanvas {
         )
     }
 
+    determineRequiredSections = () => {
+        // We can simply determine whether the section intersects with the canvas.
+        // For further optimization (taking zoom into account) we could then also test which part of the canvas is actually displayed on screen.
+        // A contentOffset of [-100, -150] means that the content will be moved 100 to the left and 150 to the top of the screen,
+        // effectively moving the area which is visible 100 to the right and 150 to the bottom of the screen
+        const sectionBufferSize = [0, 0]
+        const contentTopLeft = [
+            -this.contentOffset[0] - sectionBufferSize[0],
+            -this.contentOffset[1] - sectionBufferSize[1],
+        ]
+
+        console.log(
+            `${contentTopLeft[0]},${contentTopLeft[1]} bis ${
+                contentTopLeft[0] + this.canvas.width
+            },${contentTopLeft[1] + this.canvas.height}`
+        )
+
+        const reqSectionsIds: Set<number> = new Set()
+        for (const [id, section] of this.sections) {
+            // TODO: verify that <= is correct (and not <)
+            if (
+                contentTopLeft[0] <=
+                    section.topLeft[0] + section.width + sectionBufferSize[0] &&
+                contentTopLeft[0] + this.canvas.width + sectionBufferSize[0] >=
+                    section.topLeft[0] &&
+                contentTopLeft[1] <=
+                    section.topLeft[1] +
+                        section.height +
+                        sectionBufferSize[1] &&
+                contentTopLeft[1] + this.canvas.height + sectionBufferSize[1] >=
+                    section.topLeft[1]
+            ) {
+                reqSectionsIds.add(id)
+            }
+        }
+
+        console.log(`Required sections: ${Array.from(reqSectionsIds)}`)
+
+        return reqSectionsIds
+    }
+
     // TODO: panning is a bit janky because of aliasing
     drawSections = async () => {
         // Filter sections which are not in view
         const requiredSectionsIds = this.determineRequiredSections()
+        //const reqSectionsIds = new Set(
+        //    Array.from(this.sections.values()).map((section) => section.id)
+        //)
 
         // Subscribe to new, unsubscribe from old
-        await this.updateSectionsSubscriptions(requiredSectionsIds, this)
+        // TODO: awaiting this leads to noticeable delay in updating the canvas - this should not happen
+        // TODO: Maybe work with a callback
+        this.updateSectionsSubscriptions(requiredSectionsIds, this)
+
+        console.log(this.contentOffset)
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
-        requiredSectionsIds.forEach((reqSectionId) =>
-            this.sections.get(reqSectionId)!.drawOntoSectionCanvas(this)
-        )
+        this.subscribedSectionIds.forEach((sectionId) => {
+            const section = this.sections.get(sectionId)!
 
-        // Update reticle
-        this.reticle.update(this)
+            //console.log(
+            //    `Putting ${section.topLeft[0] + this.contentOffset[0]} ${
+            //        section.topLeft[1] + this.contentOffset[1]
+            //    }`
+            //)
+
+            this.ctx.putImageData(
+                section.imgData,
+                section.topLeft[0] + this.contentOffset[0],
+                section.topLeft[1] + this.contentOffset[1]
+            )
+        })
+
+        //// Update reticle
+        //this.reticle.update(this)
+    }
+
+    setCanvasTransform = () => {
+        this.checkBuffers()
+        this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.scale})`
+    }
+
+    checkBuffers = () => {
+        const canvas = this.canvas
+        const bufferMultiplier = this.scale * this.maxZoom
+
+        if (
+            (bufferMultiplier * canvas.width) / 2 -
+                this.screenFrame.clientWidth / 2 -
+                this.offset[0] <=
+                0 ||
+            (bufferMultiplier * canvas.width) / 2 -
+                this.screenFrame.clientWidth / 2 +
+                this.offset[0] <=
+                0 ||
+            (bufferMultiplier * canvas.height) / 2 -
+                this.screenFrame.clientHeight / 2 -
+                this.offset[1] <=
+                0 ||
+            (bufferMultiplier * canvas.height) / 2 -
+                this.screenFrame.clientHeight / 2 +
+                this.offset[1] <=
+                0
+        ) {
+            // Center canvas
+            // Need to adjust content
+            this.contentOffset[0] += this.offset[0] / bufferMultiplier
+            this.contentOffset[1] += this.offset[1] / bufferMultiplier
+            //drawImgWithOffset(img, sectionCanvas.contentOffset)
+            this.drawSections()
+            this.offset = [0, 0]
+        }
     }
 }
