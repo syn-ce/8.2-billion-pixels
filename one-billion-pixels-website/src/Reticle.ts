@@ -23,10 +23,7 @@ export class Reticle {
         const canvasCoords = sectionCanvas.screenToCanvasPixel(frameCenter)
         this.curCanvasPixel = [canvasCoords[0], canvasCoords[1]]
 
-        const translation = [
-            canvasCoords[0],
-            canvasCoords[1] - sectionCanvas.canvas.height,
-        ]
+        const translation = [canvasCoords[0], canvasCoords[1]]
 
         this.wrapper.style.transform = `translate(${translation[0]}px, ${translation[1]}px)`
     }

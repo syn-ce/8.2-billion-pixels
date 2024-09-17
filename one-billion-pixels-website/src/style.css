@@ -37,10 +37,16 @@ h1 {
     line-height: 1.1;
 }
 
+#canvas-reticle-wrapper {
+    display: grid;
+}
+
 #clicker-canvas {
     margin: auto;
     display: block; /* To prevent zoom-pan wrapper div from having excess height (bc of lineheight of canvas being added when (default) display: inline) */
     image-rendering: pixelated;
+    grid-column: 1;
+    grid-row: 1;
 }
 
 #screen-frame {
@@ -85,6 +91,8 @@ h1 {
 #reticle-wrapper {
     pointer-events: none;
     width: fit-content;
+    grid-column: 1;
+    grid-row: 1;
 }
 
 #reticle {
