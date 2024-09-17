@@ -37,10 +37,25 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
         const dist2ToStart = diffToStart[0] ** 2 + diffToStart[1] ** 2
         if (dist2ToStart > 0) return // Panned canvas
 
+        // TODO: maybe also don't move when the reticle is already on the targeted canvas pixel? Would make it practically impossible to perfectly center, though
+        const canvasPixel = sectionCanvas.screenToCanvasPixel([
+            sectionCanvas.startPanMousePos[0],
+            sectionCanvas.startPanMousePos[1],
+        ])
+        const topLeftScreenPixelOfCanvasPixel =
+            sectionCanvas.canvasToScreenPixel(canvasPixel)
+        // Pixel which should be centered
+        const screenPixelsPerCanvasPixel =
+            sectionCanvas.scale * sectionCanvas.maxZoom
+        const targetScreenPixel = [
+            topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
+            topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
+        ]
+
         // Calculate canvas pixel which was clicked
         const diffToScreenCenter = [
-            window.innerWidth / 2 - sectionCanvas.startPanMousePos[0],
-            window.innerHeight / 2 - sectionCanvas.startPanMousePos[1],
+            window.innerWidth / 2 - targetScreenPixel[0],
+            window.innerHeight / 2 - targetScreenPixel[1],
         ]
         diffToScreenCenter[0] = Math.round(diffToScreenCenter[0])
         diffToScreenCenter[1] = Math.round(diffToScreenCenter[1])
