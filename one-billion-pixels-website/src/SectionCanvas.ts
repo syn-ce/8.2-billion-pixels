@@ -10,6 +10,7 @@ export class SectionCanvas {
     ctx: CanvasRenderingContext2D
     panning: boolean
     prevPanMousePos: [number, number]
+    startPanMousePos: [number, number]
     maxZoom: number
     minZoom: number
     scale: number
@@ -24,6 +25,7 @@ export class SectionCanvas {
     screenFrame: HTMLDivElement
     panZoomWrapper: HTMLDivElement
     zoomSlider: ZoomSlider
+    canvRetWrapper: HTMLDivElement
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -35,12 +37,14 @@ export class SectionCanvas {
         screenFrame: HTMLDivElement,
         panZoomWrapper: HTMLDivElement,
         maxZoom: number,
-        zoomSlider: ZoomSlider
+        zoomSlider: ZoomSlider,
+        canvRetWrapper: HTMLDivElement
     ) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
         this.panning = false
         this.prevPanMousePos = [-1, -1] // Could be anything
+        this.startPanMousePos = [-1, -1] // As well
         this.maxZoom = maxZoom
         this.minZoom = 1
         this.scale = 1 / this.maxZoom
@@ -73,8 +77,8 @@ export class SectionCanvas {
         this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2 //* devicePixelRatio
         this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2 //* devicePixelRatio
 
-        this.canvas.style.transform = `scale(${this.maxZoom})`
-        this.reticle.htmlElement.style.transform = `scale(${this.maxZoom})`
+        this.canvRetWrapper = canvRetWrapper
+        canvRetWrapper.style.transform = `scale(${this.maxZoom})`
 
         addPanZoomToSectionCanvas(this)
 
@@ -281,6 +285,36 @@ export class SectionCanvas {
             this.drawSections()
             this.offset = [0, 0]
         }
+    }
+
+    screenToCanvasPixel = (screenPixel: [number, number]) => {
+        const canvBoundRect = this.canvas.getBoundingClientRect()
+
+        const screenPixelsPerCanvasPixel = this.scale * this.maxZoom
+
+        const canvasCoords = [
+            (screenPixel[0] - canvBoundRect.left) / screenPixelsPerCanvasPixel,
+            (screenPixel[1] - canvBoundRect.top) / screenPixelsPerCanvasPixel,
+        ]
+
+        // Flooring is the correct thing to do here
+        canvasCoords[0] = Math.floor(canvasCoords[0])
+        canvasCoords[1] = Math.floor(canvasCoords[1])
+
+        return canvasCoords
+    }
+
+    canvasToScreenPixel = (canvasPixel: [number, number]) => {
+        const canvBoundRect = this.canvas.getBoundingClientRect()
+
+        const screenPixelsPerCanvasPixel = this.scale * this.maxZoom
+
+        const screenCoords = [
+            canvasPixel[0] * screenPixelsPerCanvasPixel + canvBoundRect.left,
+            canvasPixel[1] * screenPixelsPerCanvasPixel + canvBoundRect.top,
+        ]
+
+        return screenCoords
     }
 
     zoomInto = (screenCoords: [number, number], factor: number) => {

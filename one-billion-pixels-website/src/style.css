@@ -45,10 +45,10 @@ h1 {
 
 #screen-frame {
     position: absolute;
-    width: 800px;
-    height: 500px;
+    width: 50%;
+    height: 50%;
     margin: auto;
-    border: 5px solid black;
+    outline: 5px solid black;
     pointer-events: none;
 }
 
@@ -84,6 +84,7 @@ h1 {
 
 #reticle-wrapper {
     pointer-events: none;
+    width: fit-content;
 }
 
 #reticle {

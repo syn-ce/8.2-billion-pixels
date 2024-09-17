@@ -22,12 +22,12 @@ def create_app():
     socketio = SocketIO(app, cors_allowed_origins="*")
     redis = Redis(host='redis', port=6379)
     # A billion bits (well, not during development).
-    NR_BITS = 1000000
+    NR_BITS = 10000000
     # Aspect ratio of W:H
-    ASP_RATIO_REL_W = 10
-    ASP_RATIO_REL_H = 10
+    ASP_RATIO_REL_W = 5
+    ASP_RATIO_REL_H = 2
 
-    sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 10, 10)
+    sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
     print(len(sections))
     print(sections[0])
     # Store the sections as bits in redis
@@ -44,10 +44,6 @@ def create_app():
         # TODO: reconsider remainder
         alt_bits =''.join(random.choices(string.ascii_uppercase + string.digits, k=nr_bytes+1)) # + 1 for remainder
         redis.set(section['id'], alt_bits)
-
-    bitfield = 'bitfield'
-    redis.set(bitfield, "this is some random text")
-    redis.setbit(bitfield, NR_BITS - 1, 0)
 
     pubsub = redis.pubsub()
     pubsub.subscribe('set_pixel_channel')
@@ -80,12 +76,6 @@ def create_app():
     scheduler.start()
 
     colors = [{'id': 0, 'rgb': [0, 0, 0]}, {'id': 1, 'rgb': [255, 255, 255]}]
-
-    @cross_origin
-    @app.route('/bits')
-    def get_img():
-        app.logger.info(len(redis.get(bitfield)))
-        return redis.get(bitfield)
 
     @cross_origin
     @app.route('/colors')

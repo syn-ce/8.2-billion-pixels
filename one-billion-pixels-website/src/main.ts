@@ -36,6 +36,9 @@ const zoomSlider = new ZoomSlider(
     <HTMLInputElement>document.getElementById('zoom-slider'),
     <HTMLLabelElement>document.getElementById('zoom-slider-label')
 )
+const canvRetWrapper = <HTMLDivElement>(
+    document.getElementById('canvas-reticle-wrapper')
+)
 
 // Start with canvas centered in middle of screen
 const sectionCanvas: SectionCanvas = new SectionCanvas(
@@ -48,7 +51,8 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     screenFrame,
     panZoomWrapper,
     50,
-    zoomSlider
+    zoomSlider,
+    canvRetWrapper
 )
 
 const colors: ColorChoice[] = await fetchColorChoices()
