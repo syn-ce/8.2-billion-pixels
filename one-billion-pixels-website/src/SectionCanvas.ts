@@ -336,8 +336,8 @@ export class SectionCanvas {
             diffToCenter[1] * (factor - 1),
         ]
 
-        translation[0] = Math.round(translation[0])
-        translation[1] = Math.round(translation[1])
+        translation[0] = translation[0]
+        translation[1] = translation[1]
 
         this.scale *= factor
         this.offset[0] += translation[0]
