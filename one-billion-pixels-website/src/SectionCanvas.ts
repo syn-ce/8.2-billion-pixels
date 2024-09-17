@@ -277,33 +277,41 @@ export class SectionCanvas {
 
     checkBuffers = () => {
         const canvas = this.canvas
-        const bufferMultiplier = this.scale * this.maxZoom
+        const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
 
         if (
-            (bufferMultiplier * canvas.width) / 2 -
+            (screenPixelsPerCanvasPixel * canvas.width) / 2 -
                 this.screenFrame.clientWidth / 2 -
                 this.offset[0] <=
                 0 ||
-            (bufferMultiplier * canvas.width) / 2 -
+            (screenPixelsPerCanvasPixel * canvas.width) / 2 -
                 this.screenFrame.clientWidth / 2 +
                 this.offset[0] <=
                 0 ||
-            (bufferMultiplier * canvas.height) / 2 -
+            (screenPixelsPerCanvasPixel * canvas.height) / 2 -
                 this.screenFrame.clientHeight / 2 -
                 this.offset[1] <=
                 0 ||
-            (bufferMultiplier * canvas.height) / 2 -
+            (screenPixelsPerCanvasPixel * canvas.height) / 2 -
                 this.screenFrame.clientHeight / 2 +
                 this.offset[1] <=
                 0
         ) {
-            // Center canvas
-            // Need to adjust content
-            this.contentOffset[0] += this.offset[0] / bufferMultiplier
-            this.contentOffset[1] += this.offset[1] / bufferMultiplier
-            //drawImgWithOffset(img, sectionCanvas.contentOffset)
+            // Reposition the canvas so that it's center is in the center of the screenFrame again.
+            // For this, we calculate the contentOffset. Because we only want to offset the content by whole pixels
+            // (fractions would lead to more annoying calculations when settings pixels), we have to round here.
+            const contentOffsetDiff = [
+                Math.round(this.offset[0] / screenPixelsPerCanvasPixel),
+                Math.round(this.offset[1] / screenPixelsPerCanvasPixel),
+            ]
+            this.contentOffset[0] += contentOffsetDiff[0]
+            this.contentOffset[1] += contentOffsetDiff[1]
+
             this.drawSections()
-            this.offset = [0, 0]
+            // In order for the panning and zooming to be smooth (without "jumps" when the canvas is repositioned),
+            // we move it based on the rounded translation for the content offset
+            this.offset[0] -= contentOffsetDiff[0] * screenPixelsPerCanvasPixel
+            this.offset[1] -= contentOffsetDiff[1] * screenPixelsPerCanvasPixel
         }
     }
 
