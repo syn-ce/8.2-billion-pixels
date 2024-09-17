@@ -46,12 +46,12 @@ export class SectionCanvas {
         this.prevPanMousePos = [-1, -1] // Could be anything
         this.startPanMousePos = [-1, -1] // As well
         this.maxZoom = maxZoom
-        this.minZoom = 1
-        this.scale = 1 / this.maxZoom
+        this.minZoom = 1 / devicePixelRatio
+        this.scale = 1 / (this.maxZoom * devicePixelRatio)
         this.maxScale = 1
-        this.minScale = 1 / this.maxZoom
+        this.minScale = 1 / (this.maxZoom * devicePixelRatio)
         this.zoomSlider = zoomSlider
-        this.zoomSlider.min = 1
+        this.zoomSlider.min = this.minZoom
         this.zoomSlider.max = this.maxZoom
         this.zoomSlider.value = this.scale * this.maxZoom
         this.zoomSlider.step = 0.01
@@ -74,8 +74,10 @@ export class SectionCanvas {
         //this.canvas.style.height = `${
         //    screenFrame.clientHeight + heightBufferSize * 2
         //}px`
-        this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2 //* devicePixelRatio
-        this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2 //* devicePixelRatio
+        this.canvas.width =
+            (screenFrame.clientWidth + widthBufferSize * 2) * devicePixelRatio
+        this.canvas.height =
+            (screenFrame.clientHeight + heightBufferSize * 2) * devicePixelRatio
 
         this.canvRetWrapper = canvRetWrapper
         canvRetWrapper.style.transform = `scale(${this.maxZoom})`
