@@ -34,7 +34,13 @@ const createColorChoice = (
     return colorEl
 }
 
-export class ColorPicker {
+export interface ColorProvider {
+    getColorById(colorId: number): [number, number, number] | undefined
+    getIdForColor(color: [number, number, number]): number | undefined
+    colorToFillStyleString(color: [number, number, number]): string
+}
+
+export class ColorPicker implements ColorProvider {
     colorChoices: ColorChoice[]
     divEl: HTMLDivElement
     curColorChoice: ColorChoice
@@ -80,5 +86,24 @@ export class ColorPicker {
         this.curColorChoice.htmlEl!.classList.remove('active')
         this.curColorChoice = newColorChoice
         newColorChoice.htmlEl!.classList.add('active')
+    }
+
+    getColorById(colorId: number): [number, number, number] | undefined {
+        for (const color of this.colorChoices) {
+            if (color.id === colorId) return color.rgb
+        }
+        return undefined
+    }
+
+    getIdForColor(color: [number, number, number]): number | undefined {
+        for (const c of this.colorChoices) {
+            if (c.r === color[0] && c.g === color[1] && c.b === color[2])
+                return c.id
+        }
+        return undefined
+    }
+
+    colorToFillStyleString(color: [number, number, number]): string {
+        return `rgb(${color[0]} ${color[1]} ${color[2]})`
     }
 }

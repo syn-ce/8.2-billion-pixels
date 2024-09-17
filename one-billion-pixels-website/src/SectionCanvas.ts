@@ -4,6 +4,7 @@ import { Section } from './Section'
 import { fetchSectionsData } from './requests'
 import { addPanZoomToSectionCanvas } from './PanZoom'
 import { ZoomSlider } from './ZoomSlider'
+import { ColorProvider } from './ColorPicker'
 
 export class SectionCanvas {
     canvas: HTMLCanvasElement
@@ -35,6 +36,7 @@ export class SectionCanvas {
     panZoomWrapper: HTMLDivElement
     zoomSlider: ZoomSlider
     canvRetWrapper: HTMLDivElement
+    colorProvider: ColorProvider
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -47,7 +49,8 @@ export class SectionCanvas {
         panZoomWrapper: HTMLDivElement,
         maxZoom: number,
         zoomSlider: ZoomSlider,
-        canvRetWrapper: HTMLDivElement
+        canvRetWrapper: HTMLDivElement,
+        colorProvider: ColorProvider
     ) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
@@ -73,6 +76,7 @@ export class SectionCanvas {
         this.zoomSlider.max = this.maxZoom
         this.zoomSlider.value = this.scale * this.maxZoom
         this.zoomSlider.step = 0.01
+        this.colorProvider = colorProvider
 
         this.offset = [0, 0]
         this.contentOffset = [0, 0]
@@ -115,13 +119,28 @@ export class SectionCanvas {
             'set-pixel',
             (data: { sectionId: number; pixelIdx: number; color: number }) => {
                 console.log(`set-pixel: ${JSON.stringify(data)}`)
-                this.sections
-                    .get(data.sectionId)!
-                    .setPixel(
-                        this.sections.get(data.sectionId)!,
-                        data.pixelIdx,
-                        data.color
-                    )
+                const section = this.sections.get(data.sectionId)!
+                section.setPixel(
+                    this.sections.get(data.sectionId)!,
+                    data.pixelIdx,
+                    data.color
+                )
+
+                const sectionPixel = section.sectionPixelIdxToSectionPixel(
+                    data.pixelIdx
+                )
+                const canvasPixel = [
+                    sectionPixel[0] + this.contentOffset[0],
+                    sectionPixel[1] + this.contentOffset[1],
+                ]
+
+                const color = this.colorProvider.getColorById(data.color)
+                if (color === undefined) return
+
+                this.ctx.fillStyle =
+                    this.colorProvider.colorToFillStyleString(color)
+
+                this.ctx.fillRect(canvasPixel[0], canvasPixel[1], 1, 1)
             }
         )
     }
@@ -131,7 +150,7 @@ export class SectionCanvas {
         colorId: number,
         sectionCanvas: SectionCanvas
     ) => {
-        const sectionCoords = [
+        const sectionCoords: [number, number] = [
             canvasPixel[0] - this.contentOffset[0],
             canvasPixel[1] - this.contentOffset[1],
         ]
@@ -153,9 +172,7 @@ export class SectionCanvas {
 
         const section = sectionCanvas.sections.get(sectionId)!
 
-        const sectionPixelIdx =
-            (sectionCoords[1] - section.topLeft[1]) * section.width +
-            (sectionCoords[0] - section.topLeft[0])
+        const sectionPixelIdx = section.sectionPxlToSectionPxlIdx(sectionCoords)
 
         // Set pixel in section
         section.setPixel(section, sectionPixelIdx, colorId)

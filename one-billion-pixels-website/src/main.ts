@@ -40,6 +40,12 @@ const canvRetWrapper = <HTMLDivElement>(
     document.getElementById('canvas-reticle-wrapper')
 )
 
+const colors: ColorChoice[] = await fetchColorChoices()
+const colorPicker = new ColorPicker(
+    colors,
+    <HTMLDivElement>document.getElementById('color-picker')
+)
+
 // Start with canvas centered in middle of screen
 const sectionCanvas: SectionCanvas = new SectionCanvas(
     canvas,
@@ -52,13 +58,8 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     panZoomWrapper,
     50,
     zoomSlider,
-    canvRetWrapper
-)
-
-const colors: ColorChoice[] = await fetchColorChoices()
-const colorPicker = new ColorPicker(
-    colors,
-    <HTMLDivElement>document.getElementById('color-picker')
+    canvRetWrapper,
+    colorPicker
 )
 
 const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')

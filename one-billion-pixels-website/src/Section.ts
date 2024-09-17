@@ -29,6 +29,19 @@ export class Section implements SectionAttributes {
         this.imgData = new ImageData(1, 1) // Empty default
     }
 
+    sectionPxlToSectionPxlIdx = (sectionPixel: [number, number]) => {
+        return (
+            (sectionPixel[1] - this.topLeft[1]) * this.width +
+            (sectionPixel[0] - this.topLeft[0])
+        )
+    }
+
+    sectionPixelIdxToSectionPixel = (sectionPixelIdx: number) => {
+        const x = sectionPixelIdx % this.width
+        const y = (sectionPixelIdx - x) / this.width
+        return [x, y]
+    }
+
     drawOnSectionCanvas = (sectionCanvas: SectionCanvas) => {
         sectionCanvas.ctx.putImageData(
             this.imgData,
@@ -64,16 +77,17 @@ export class Section implements SectionAttributes {
         this.imgData = imgData
     }
 
-    setPixel = (section: Section, pixelIdx: number, color: number) => {
+    // TODO: work with color provider here, make this flexible, i.e. allow for colors with variable nr of bits
+    setPixel = (section: Section, pixelIdx: number, colorId: number) => {
         // Set bit in data
         const byteIdx = Math.floor(pixelIdx / 8)
         const bitIdx = pixelIdx % 8
-        if (color == 0) section.data[byteIdx] &= 255 ^ ((1 << 7) >> bitIdx)
+        if (colorId == 0) section.data[byteIdx] &= 255 ^ ((1 << 7) >> bitIdx)
         else section.data[byteIdx] |= (1 << 7) >> bitIdx
         // Set bit in imgData
-        if (color == 1) color = 255
-        this.imgData.data[pixelIdx * 4] = color
-        this.imgData.data[pixelIdx * 4 + 1] = color
-        this.imgData.data[pixelIdx * 4 + 2] = color
+        if (colorId == 1) colorId = 255
+        this.imgData.data[pixelIdx * 4] = colorId
+        this.imgData.data[pixelIdx * 4 + 1] = colorId
+        this.imgData.data[pixelIdx * 4 + 2] = colorId
     }
 }
