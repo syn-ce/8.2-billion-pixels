@@ -46,7 +46,7 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.canvasToScreenPixel(canvasPixel)
         // Pixel which should be centered
         const screenPixelsPerCanvasPixel =
-            sectionCanvas.scale * sectionCanvas.maxZoom
+            sectionCanvas.screenPixelsPerCanvasPixel
         const targetScreenPixel = [
             topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
             topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
