@@ -1,8 +1,9 @@
 import { SectionCanvas } from './SectionCanvas'
 
 export const addPanZoomToSectionCanvas = (sectionCanvas: SectionCanvas) => {
-    addPanToCanvas(sectionCanvas)
-    addZoomToCanvas(sectionCanvas)
+    addMouseWheelPanToCanvas(sectionCanvas)
+    addMouseWheelZoomToCanvas(sectionCanvas)
+    addTouchPanZoomToCanvas(sectionCanvas)
 }
 
 const copyTouch = ({
@@ -13,15 +14,13 @@ const copyTouch = ({
     identifier: number
     clientX: number
     clientY: number
-}) => {
-    return { id: identifier, x: clientX, y: clientY }
-}
+}) => ({ id: identifier, x: clientX, y: clientY })
 
 const dist2 = (p1: [number, number], p2: [number, number]) =>
     (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
 
 // TODO: clicking for centering does not really work on mobile, haven't yet figured out why though
-const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
+const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onmousedown = (evt) => {
         sectionCanvas.panning = true
@@ -29,6 +28,65 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
         sectionCanvas.startPanMousePos = [evt.x, evt.y]
     }
 
+    canvas.onmousemove = (evt) => {
+        if (!sectionCanvas.panning) return
+        const diff = [
+            evt.x - sectionCanvas.prevPanMousePos[0],
+            evt.y - sectionCanvas.prevPanMousePos[1],
+        ]
+
+        sectionCanvas.offset[0] += diff[0]
+        sectionCanvas.offset[1] += diff[1]
+        sectionCanvas.prevPanMousePos = [evt.x, evt.y]
+        sectionCanvas.setCanvasTransform()
+    }
+
+    canvas.onmouseup = (evt) => {
+        sectionCanvas.panning = false
+
+        // Test whether it was a click / tap and we should center the clicked/tapped point
+        const diffToStart = [
+            sectionCanvas.startPanMousePos[0] - evt.x,
+            sectionCanvas.startPanMousePos[1] - evt.y,
+        ]
+        const dist2ToStart = diffToStart[0] ** 2 + diffToStart[1] ** 2
+        if (dist2ToStart > 0) return // Panned canvas
+
+        // TODO: maybe also don't move when the reticle is already on the targeted canvas pixel? Would make it practically impossible to perfectly center, though
+        // Canvas pixel which was clicked
+        const canvasPixel = sectionCanvas.screenToCanvasPixel([
+            sectionCanvas.startPanMousePos[0],
+            sectionCanvas.startPanMousePos[1],
+        ])
+        const topLeftScreenPixelOfCanvasPixel =
+            sectionCanvas.canvasToScreenPixel(canvasPixel)
+        // Pixel which should be centered
+        const screenPixelsPerCanvasPixel =
+            sectionCanvas.screenPixelsPerCanvasPixel
+        const targetScreenPixel = [
+            topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
+            topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
+        ]
+
+        const diffToScreenCenter = [
+            window.innerWidth / 2 - targetScreenPixel[0],
+            window.innerHeight / 2 - targetScreenPixel[1],
+        ]
+        diffToScreenCenter[0] = Math.round(diffToScreenCenter[0])
+        diffToScreenCenter[1] = Math.round(diffToScreenCenter[1])
+
+        sectionCanvas.offset[0] += diffToScreenCenter[0]
+        sectionCanvas.offset[1] += diffToScreenCenter[1]
+        sectionCanvas.setCanvasTransform()
+    }
+
+    canvas.onmouseleave = (evt) => {
+        sectionCanvas.panning = false
+    }
+}
+
+const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
+    const canvas = sectionCanvas.canvas
     canvas.ontouchstart = (evt) => {
         if (evt.touches.length == 1) {
             // Pan
@@ -69,6 +127,7 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
             const touch1 = copyTouch(evt.touches[0 + swapTouchIdx])
             const touch2 = copyTouch(evt.touches[1 - swapTouchIdx])
 
+            // TODO: use movementDeltas, make touch-interactions feel better
             const movementDelta1 = [
                 touch1.x - prevTouch1.x,
                 touch1.y - prevTouch1.y,
@@ -94,67 +153,10 @@ const addPanToCanvas = (sectionCanvas: SectionCanvas) => {
 
             sectionCanvas.prevZoomTouch = [touch1, touch2]
         }
-        console.log(evt)
-    }
-
-    canvas.onmousemove = (evt) => {
-        if (!sectionCanvas.panning) return
-        const diff = [
-            evt.x - sectionCanvas.prevPanMousePos[0],
-            evt.y - sectionCanvas.prevPanMousePos[1],
-        ]
-
-        sectionCanvas.offset[0] += diff[0]
-        sectionCanvas.offset[1] += diff[1]
-        sectionCanvas.prevPanMousePos = [evt.x, evt.y]
-        sectionCanvas.setCanvasTransform()
-    }
-
-    canvas.onmouseup = (evt) => {
-        sectionCanvas.panning = false
-
-        // Test whether it was a click / tap and we should center the clicked/tapped point
-        const diffToStart = [
-            sectionCanvas.startPanMousePos[0] - evt.x,
-            sectionCanvas.startPanMousePos[1] - evt.y,
-        ]
-        const dist2ToStart = diffToStart[0] ** 2 + diffToStart[1] ** 2
-        if (dist2ToStart > 0) return // Panned canvas
-
-        // TODO: maybe also don't move when the reticle is already on the targeted canvas pixel? Would make it practically impossible to perfectly center, though
-        const canvasPixel = sectionCanvas.screenToCanvasPixel([
-            sectionCanvas.startPanMousePos[0],
-            sectionCanvas.startPanMousePos[1],
-        ])
-        const topLeftScreenPixelOfCanvasPixel =
-            sectionCanvas.canvasToScreenPixel(canvasPixel)
-        // Pixel which should be centered
-        const screenPixelsPerCanvasPixel =
-            sectionCanvas.screenPixelsPerCanvasPixel
-        const targetScreenPixel = [
-            topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
-            topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
-        ]
-
-        // Calculate canvas pixel which was clicked
-        const diffToScreenCenter = [
-            window.innerWidth / 2 - targetScreenPixel[0],
-            window.innerHeight / 2 - targetScreenPixel[1],
-        ]
-        diffToScreenCenter[0] = Math.round(diffToScreenCenter[0])
-        diffToScreenCenter[1] = Math.round(diffToScreenCenter[1])
-
-        sectionCanvas.offset[0] += diffToScreenCenter[0]
-        sectionCanvas.offset[1] += diffToScreenCenter[1]
-        sectionCanvas.setCanvasTransform()
-    }
-
-    canvas.onmouseleave = (evt) => {
-        sectionCanvas.panning = false
     }
 }
 
-const addZoomToCanvas = (sectionCanvas: SectionCanvas) => {
+const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onwheel = (evt) => {
         let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
