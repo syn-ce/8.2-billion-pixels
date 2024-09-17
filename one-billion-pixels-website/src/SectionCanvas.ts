@@ -90,12 +90,6 @@ export class SectionCanvas {
         const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
         const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
 
-        //this.canvas.style.width = `${
-        //    screenFrame.clientWidth + widthBufferSize * 2
-        //}px`
-        //this.canvas.style.height = `${
-        //    screenFrame.clientHeight + heightBufferSize * 2
-        //}px`
         this.canvas.width =
             (screenFrame.clientWidth + widthBufferSize * 2) * devicePixelRatio
         this.canvas.height =
