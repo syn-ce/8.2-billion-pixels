@@ -10,6 +10,15 @@ export class SectionCanvas {
     ctx: CanvasRenderingContext2D
     panning: boolean
     prevPanMousePos: [number, number]
+    prevZoomTouch: [
+        { x: number; y: number; id: number },
+        { x: number; y: number; id: number }
+    ]
+    startZoomTouch: {
+        touch1: { x: number; y: number; id: number }
+        touch2: { x: number; y: number; id: number }
+        center: { x: number; y: number }
+    }
     startPanMousePos: [number, number]
     maxZoom: number
     minZoom: number
@@ -45,6 +54,15 @@ export class SectionCanvas {
         this.panning = false
         this.prevPanMousePos = [-1, -1] // Could be anything
         this.startPanMousePos = [-1, -1] // As well
+        this.startZoomTouch = {
+            touch1: { x: -1, y: -1, id: -1 },
+            touch2: { x: -1, y: -1, id: -1 },
+            center: { x: -1, y: -1 },
+        } // Yup
+        this.prevZoomTouch = [
+            { x: -1, y: -1, id: -1 },
+            { x: -1, y: -1, id: -1 },
+        ] // You guessed it
         this.maxZoom = maxZoom
         this.minZoom = 1 / devicePixelRatio
         this.scale = 1 / (this.maxZoom * devicePixelRatio)
