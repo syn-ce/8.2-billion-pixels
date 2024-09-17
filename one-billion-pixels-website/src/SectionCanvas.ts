@@ -287,12 +287,12 @@ export class SectionCanvas {
         }
     }
 
-    screenToCanvasPixel = (screenPixel: [number, number]) => {
+    screenToCanvasPixel = (screenPixel: [number, number]): [number, number] => {
         const canvBoundRect = this.canvas.getBoundingClientRect()
 
         const screenPixelsPerCanvasPixel = this.scale * this.maxZoom
 
-        const canvasCoords = [
+        const canvasCoords: [number, number] = [
             (screenPixel[0] - canvBoundRect.left) / screenPixelsPerCanvasPixel,
             (screenPixel[1] - canvBoundRect.top) / screenPixelsPerCanvasPixel,
         ]
@@ -304,12 +304,12 @@ export class SectionCanvas {
         return canvasCoords
     }
 
-    canvasToScreenPixel = (canvasPixel: [number, number]) => {
+    canvasToScreenPixel = (canvasPixel: [number, number]): [number, number] => {
         const canvBoundRect = this.canvas.getBoundingClientRect()
 
         const screenPixelsPerCanvasPixel = this.scale * this.maxZoom
 
-        const screenCoords = [
+        const screenCoords: [number, number] = [
             canvasPixel[0] * screenPixelsPerCanvasPixel + canvBoundRect.left,
             canvasPixel[1] * screenPixelsPerCanvasPixel + canvBoundRect.top,
         ]
