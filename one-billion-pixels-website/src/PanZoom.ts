@@ -58,26 +58,8 @@ const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.startPanMousePos[0],
             sectionCanvas.startPanMousePos[1],
         ])
-        const topLeftScreenPixelOfCanvasPixel =
-            sectionCanvas.canvasToScreenPixel(canvasPixel)
-        // Pixel which should be centered
-        const screenPixelsPerCanvasPixel =
-            sectionCanvas.screenPixelsPerCanvasPixel
-        const targetScreenPixel = [
-            topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
-            topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
-        ]
 
-        const diffToScreenCenter = [
-            window.innerWidth / 2 - targetScreenPixel[0],
-            window.innerHeight / 2 - targetScreenPixel[1],
-        ]
-        diffToScreenCenter[0] = Math.round(diffToScreenCenter[0])
-        diffToScreenCenter[1] = Math.round(diffToScreenCenter[1])
-
-        sectionCanvas.offset[0] += diffToScreenCenter[0]
-        sectionCanvas.offset[1] += diffToScreenCenter[1]
-        sectionCanvas.setCanvasTransform()
+        sectionCanvas.centerCanvasPixel(canvasPixel)
     }
 
     canvas.onmouseleave = (evt) => {

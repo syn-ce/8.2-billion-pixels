@@ -387,4 +387,26 @@ export class SectionCanvas {
     get screenPixelsPerCanvasPixel() {
         return this.scale * this.maxZoom
     }
+
+    centerCanvasPixel = (canvasPixel: [number, number]) => {
+        const topLeftScreenPixelOfCanvasPixel =
+            this.canvasToScreenPixel(canvasPixel)
+        // Pixel which should be centered
+        const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
+        const targetScreenPixel = [
+            topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
+            topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
+        ]
+
+        const diffToScreenCenter = [
+            window.innerWidth / 2 - targetScreenPixel[0],
+            window.innerHeight / 2 - targetScreenPixel[1],
+        ]
+        diffToScreenCenter[0] = Math.round(diffToScreenCenter[0])
+        diffToScreenCenter[1] = Math.round(diffToScreenCenter[1])
+
+        this.offset[0] += diffToScreenCenter[0]
+        this.offset[1] += diffToScreenCenter[1]
+        this.setCanvasTransform()
+    }
 }
