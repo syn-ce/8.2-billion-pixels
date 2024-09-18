@@ -258,7 +258,11 @@ export class SectionCanvas {
         const [newlyAddedIds, oldRemainingIds] =
             this.updateSectionsSubscriptions(requiredSectionsIds)
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        //this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        this.ctx.fillStyle = this.colorProvider.colorToFillStyleString([
+            100, 100, 100,
+        ])
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
         // Draw remaining old ones
         oldRemainingIds.forEach((sectionId) => {
             const section = this.sections.get(sectionId)!
