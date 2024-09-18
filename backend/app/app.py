@@ -59,8 +59,8 @@ def create_app():
                     data = json.loads(message['data'])
                     socketio.emit('set-pixel', data)
                 except json.JSONDecodeError:
-                    app.logger.error(f'Failed to decode message: {message['data']}')
-            
+                    app.logger.error(f'Failed to decode message: {message["data"]}')
+
             message_count += 1
             app.logger.info(message)
             #socketio.emit('set_pixel', )
