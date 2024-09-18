@@ -1,3 +1,5 @@
+import { SectionData } from './SectionData'
+import { ColorProvider } from './ColorPicker'
 import { SectionCanvas } from './SectionCanvas'
 
 export interface SectionAttributes {
@@ -9,24 +11,36 @@ export interface SectionAttributes {
 export class Section implements SectionAttributes {
     topLeft: [number, number]
     botRight: [number, number]
+    sectionData: SectionData
     width: number
     height: number
     id: number
-    data: Uint8Array
-    imgData: ImageData
+    bitsPerPixel: number
+    imgData: ImageData | undefined
+    colorProvider: ColorProvider
 
     constructor(
         topLeft: [number, number],
         botRight: [number, number],
-        id: number
+        id: number,
+        bitsPerPixel: number,
+        colorProvider: ColorProvider
     ) {
         this.topLeft = topLeft
         this.botRight = botRight
         this.id = id
         this.width = this.botRight[0] - this.topLeft[0]
         this.height = this.botRight[1] - this.topLeft[1]
-        this.data = new Uint8Array(1) // Empty default
-        this.imgData = new ImageData(1, 1) // Empty default
+        this.bitsPerPixel = bitsPerPixel
+        this.colorProvider = colorProvider
+        this.imgData = undefined // Empty default
+
+        this.sectionData = new SectionData(
+            undefined,
+            this.width,
+            this.height,
+            this.bitsPerPixel
+        )
     }
 
     sectionPxlToSectionPxlIdx = (sectionPixel: [number, number]) => {
@@ -44,50 +58,52 @@ export class Section implements SectionAttributes {
 
     drawOnSectionCanvas = (sectionCanvas: SectionCanvas) => {
         sectionCanvas.ctx.putImageData(
-            this.imgData,
+            this.imgData!,
             this.topLeft[0] + sectionCanvas.contentOffset[0],
             this.topLeft[1] + sectionCanvas.contentOffset[1]
         )
     }
 
     setData = (data: Uint8Array) => {
-        this.data = data
         const imgData = new ImageData(this.width, this.height)
 
-        let imgDataIdx = 0
-        //console.log(data.length)
+        this.sectionData.data = data
 
-        let white = 0
-        let black = 0
-        for (let i = 0; i < this.data.length; i++) {
-            const byte = this.data[i]
-            for (let j = 0; j < 8; j++) {
-                const bit = (byte >> (7 - j)) & 1
-                const color = bit == 1 ? 255 : 0
-                if (color == 0) black++
-                else white++
-                imgData.data[imgDataIdx] = color
-                imgData.data[imgDataIdx + 1] = color + this.id * 2 // Color offset for debugging purposes
-                imgData.data[imgDataIdx + 2] = color + this.id * 2
-                imgData.data[imgDataIdx + 3] = 255
-                imgDataIdx += 4
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                const colorId = this.sectionData.getPixelColorId(x, y)
+                const color = this.colorProvider!.getColorById(colorId)
+                if (color === undefined)
+                    throw Error(
+                        `ColorProvider was asked for unknown color: id=${colorId}`
+                    )
+                const idx = y * this.width + x
+                imgData.data[idx * 4 + 0] = color[0]
+                imgData.data[idx * 4 + 1] = color[1] * 2 // Color offset for debugging purposes
+                imgData.data[idx * 4 + 2] = color[2] * 2
+                imgData.data[idx * 4 + 3] = 255
             }
         }
-        //console.log(`white: ${white}, black: ${black}`)
         this.imgData = imgData
     }
 
-    // TODO: work with color provider here, make this flexible, i.e. allow for colors with variable nr of bits
-    setPixel = (section: Section, pixelIdx: number, colorId: number) => {
-        // Set bit in data
-        const byteIdx = Math.floor(pixelIdx / 8)
-        const bitIdx = pixelIdx % 8
-        if (colorId == 0) section.data[byteIdx] &= 255 ^ ((1 << 7) >> bitIdx)
-        else section.data[byteIdx] |= (1 << 7) >> bitIdx
-        // Set bit in imgData
-        if (colorId == 1) colorId = 255
-        this.imgData.data[pixelIdx * 4] = colorId
-        this.imgData.data[pixelIdx * 4 + 1] = colorId
-        this.imgData.data[pixelIdx * 4 + 2] = colorId
+    setPixel = (pixelIdx: number, colorId: number) => {
+        const x = pixelIdx % this.width
+        const y = (pixelIdx - x) / this.width
+
+        const color = this.colorProvider.getColorById(colorId)
+        if (color == undefined)
+            throw new Error(
+                `ColorProvider was asked for unknown color: id=${colorId}`
+            )
+
+        // TODO: put imgData into sectionData
+        // Set bit in section data
+        this.sectionData.setPixelColorId(x, y, colorId)
+
+        // Set bit in image data
+        this.imgData!.data[pixelIdx * 4] = color[0]
+        this.imgData!.data[pixelIdx * 4 + 1] = color[1]
+        this.imgData!.data[pixelIdx * 4 + 2] = color[2]
     }
 }

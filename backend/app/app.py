@@ -28,6 +28,12 @@ def create_app():
     ASP_RATIO_REL_W = 5
     ASP_RATIO_REL_H = 2
 
+    bits_per_color = 2
+
+    color_provider = ColorProvider(bits_per_color, [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168)])
+    colors = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
+    app.logger.info(colors)
+
     sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
     print(len(sections))
     print(sections[0])
@@ -36,20 +42,16 @@ def create_app():
     for section in sections:
         width = int(section['botRight'][0] -  section['topLeft'][0])
         height = int(section['botRight'][1] - section['topLeft'][1])
-        bytes_width = int(width // 8)
-        bytes_height = height
-        total = width * height
-        nr_bytes = int(total // 8)
-
+        nr_bits = width * height * bits_per_color
         #remainder = total % 8
         # TODO: reconsider remainder
-        alt_bits =''.join(random.choices(string.ascii_uppercase + string.digits, k=nr_bytes+1)) # + 1 for remainder
-        redis.set(section['id'], alt_bits)
+        #redis.set(section['id'], '') # Clear (for development)
+        redis.setbit(section['id'], nr_bits - 1, 0)
 
     pubsub = redis.pubsub()
     pubsub.subscribe('set_pixel_channel')
 
-    def handle_redis_messages():       
+    def handle_redis_messages():
         message_count = 0
         while True:
             message = pubsub.get_message(timeout=0.01) # Return None after timeout
@@ -76,9 +78,6 @@ def create_app():
     scheduler.add_job(handle_redis_messages, 'interval', seconds=0.1)
     scheduler.start()
 
-    color_provider = ColorProvider(1, [Color(0, 0, 0), Color(255, 255, 255)])
-    colors = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
-
     @cross_origin
     @app.route('/colors')
     def get_colors():
@@ -87,7 +86,7 @@ def create_app():
     @cross_origin
     @app.route('/sections')
     def get_sections():
-        return sections
+        return {'sections': sections, 'bitsPerPixel': bits_per_color}
 
     @cross_origin
     @app.route('/section-data/<id>')
@@ -123,7 +122,9 @@ def create_app():
     def handle_set_pixel(data):
         app.logger.info('received request')
         sectionId, pixelIdx, color = data
-        redis.setbit(sectionId, pixelIdx, color)
+        bitfield = redis.bitfield(sectionId)
+        bitfield.set(f'u{bits_per_color}', f'#{pixelIdx}', color)
+        bitfield.execute()
         redis.publish('set_pixel_channel', message=json.dumps({'sectionId': sectionId, 'pixelIdx': pixelIdx, 'color': color}))
 
     @socketio.on('message')

@@ -11,23 +11,11 @@ export const fetchColorChoices = async () => {
 }
 
 export const fetchSectionsConfig = async () => {
-    const res: [SectionAttributes] = await (
+    const res: { sections: [SectionAttributes]; bitsPerPixel: number } = await (
         await fetch(`${URL}/sections`)
     ).json()
-
-    const sections = []
-    for (let i = 0; i < res.length; i++) {
-        const sectionData = res[i]
-        sections.push(
-            new Section(
-                sectionData.topLeft,
-                sectionData.botRight,
-                sectionData.id
-            )
-        )
-    }
-
-    return sections
+    // We don't really need different color-depths across sections, and this implementation should make it fairly straight forward to add it if needed
+    return res
 }
 
 export const fetchSectionData = async (sectionId: number) => {

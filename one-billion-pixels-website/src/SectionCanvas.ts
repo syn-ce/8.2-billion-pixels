@@ -114,11 +114,7 @@ export class SectionCanvas {
             (data: { sectionId: number; pixelIdx: number; color: number }) => {
                 console.log(`set-pixel: ${JSON.stringify(data)}`)
                 const section = this.sections.get(data.sectionId)!
-                section.setPixel(
-                    this.sections.get(data.sectionId)!,
-                    data.pixelIdx,
-                    data.color
-                )
+                section.setPixel(data.pixelIdx, data.color)
 
                 const sectionPixel = section.sectionPixelIdxToSectionPixel(
                     data.pixelIdx
@@ -169,7 +165,7 @@ export class SectionCanvas {
         const sectionPixelIdx = section.sectionPxlToSectionPxlIdx(sectionCoords)
 
         // Set pixel in section
-        section.setPixel(section, sectionPixelIdx, colorId)
+        section.setPixel(sectionPixelIdx, colorId)
 
         // Redraw section onto canvas
         section.drawOnSectionCanvas(this)

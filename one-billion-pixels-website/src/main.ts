@@ -1,7 +1,7 @@
 import { ColorChoice, ColorPicker } from './ColorPicker'
 import { fetchColorChoices, fetchSectionsConfig } from './requests'
 import { Reticle } from './Reticle'
-import { Section } from './Section'
+import { Section, SectionAttributes } from './Section'
 import { SectionCanvas } from './SectionCanvas'
 import { setupSocket } from './socket'
 import './style.css'
@@ -24,7 +24,26 @@ const panZoomWrapper = <HTMLDivElement>(
     document.getElementById('pan-zoom-wrapper')
 )
 
-const sections: Section[] = await fetchSectionsConfig()
+const colors: ColorChoice[] = await fetchColorChoices()
+const colorPicker = new ColorPicker(
+    colors,
+    <HTMLDivElement>document.getElementById('color-picker')
+)
+
+const sectionConfig: { sections: SectionAttributes[]; bitsPerPixel: number } =
+    await fetchSectionsConfig()
+
+const sections = sectionConfig.sections.map(
+    (sectionAttrs) =>
+        new Section(
+            sectionAttrs.topLeft,
+            sectionAttrs.botRight,
+            sectionAttrs.id,
+            sectionConfig.bitsPerPixel,
+            colorPicker
+        )
+)
+
 const WIDTH = sections[sections.length - 1].botRight[0] // TODO: this assumes the sections to start at 0; maybe don't make this assumption
 const HEIGHT = sections[sections.length - 1].botRight[1]
 console.log(sections)
@@ -38,12 +57,6 @@ const zoomSlider = new ZoomSlider(
 )
 const canvRetWrapper = <HTMLDivElement>(
     document.getElementById('canvas-reticle-wrapper')
-)
-
-const colors: ColorChoice[] = await fetchColorChoices()
-const colorPicker = new ColorPicker(
-    colors,
-    <HTMLDivElement>document.getElementById('color-picker')
 )
 
 // Start with canvas centered in middle of screen

@@ -32,12 +32,12 @@ class Color:
 
 
 class ColorProvider:
-    _bits_per_color: int
     _id_to_color: dict[int, Color]
     _color_to_id: dict[Color, int]
     _id_heap: list[int] # TODO: the current implementation does not allow the heap to shrink, even when all colors except (for instance) the first two have been removed
+    _capacity: int
     def __init__(self, bits_per_color: int, colors: Iterable[Color]):
-        self._bits_per_color = bits_per_color # TODO: this should probably come from somewhere else
+        self._capacity = 2 ** bits_per_color # TODO: this should probably come from somewhere else
         self._id_to_color = {}
         self._color_to_id = {}
         self._id_heap = []
@@ -52,6 +52,8 @@ class ColorProvider:
         heapq.heappush(self._id_heap, id) # Re-add id to heap
 
     def add_color(self, color: Color):
+        if len(self._color_to_id) == self._capacity:
+            raise Exception(f"Cannot add color to ColorProvider with capacity {self._capacity} because its capacity has already been reached.")
         if color in self._color_to_id:
             return
         id = len(self._id_to_color) # Assume continuous indexing
@@ -62,3 +64,6 @@ class ColorProvider:
     
     def get_id_colors(self):
         return self._id_to_color
+    
+    def size(self):
+        return len(self._color_to_id)
