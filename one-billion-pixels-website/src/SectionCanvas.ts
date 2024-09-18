@@ -2,7 +2,7 @@ import { Socket } from 'socket.io-client'
 import { Reticle } from './Reticle'
 import { Section } from './Section'
 import { fetchSectionsData } from './requests'
-import { addPanZoomToSectionCanvas } from './PanZoom'
+import { addAllInteractivityToSectionCanvas } from './CanvasInteractions'
 import { ZoomSlider } from './ZoomSlider'
 import { ColorProvider } from './ColorPicker'
 
@@ -98,7 +98,7 @@ export class SectionCanvas {
         this.canvRetWrapper = canvRetWrapper
         canvRetWrapper.style.transform = `scale(${this.maxZoom})`
 
-        addPanZoomToSectionCanvas(this)
+        addAllInteractivityToSectionCanvas(this)
 
         this.zoomSlider.addInputCallback((zoomValue) => {
             const screenCenter: [number, number] = [

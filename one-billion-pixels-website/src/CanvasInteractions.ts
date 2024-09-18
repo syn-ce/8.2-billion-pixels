@@ -1,5 +1,12 @@
 import { SectionCanvas } from './SectionCanvas'
 
+export const addAllInteractivityToSectionCanvas = (
+    sectionCanvas: SectionCanvas
+) => {
+    addPanZoomToSectionCanvas(sectionCanvas)
+    addArrowPixelNavigation(sectionCanvas)
+}
+
 export const addPanZoomToSectionCanvas = (sectionCanvas: SectionCanvas) => {
     addMouseWheelPanToCanvas(sectionCanvas)
     addMouseWheelZoomToCanvas(sectionCanvas)
@@ -144,4 +151,36 @@ const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
         let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
         sectionCanvas.zoomInto([evt.x, evt.y], zoomFactor)
     }
+}
+
+const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
+    window.addEventListener('keydown', (evt) => {
+        const canvasPixel = sectionCanvas.reticle.curCanvasPixel
+        if (evt.code === 'ArrowLeft') {
+            // Move to left
+            const newCanvasPixel: [number, number] = [
+                canvasPixel[0] - 1,
+                canvasPixel[1],
+            ]
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+        } else if (evt.code === 'ArrowUp') {
+            const newCanvasPixel: [number, number] = [
+                canvasPixel[0],
+                canvasPixel[1] - 1,
+            ]
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+        } else if (evt.code === 'ArrowRight') {
+            const newCanvasPixel: [number, number] = [
+                canvasPixel[0] + 1,
+                canvasPixel[1],
+            ]
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+        } else if (evt.code === 'ArrowDown') {
+            const newCanvasPixel: [number, number] = [
+                canvasPixel[0],
+                canvasPixel[1] + 1,
+            ]
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+        }
+    })
 }
