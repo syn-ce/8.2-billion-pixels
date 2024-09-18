@@ -79,8 +79,8 @@ export class Section implements SectionAttributes {
                     )
                 const idx = y * this.width + x
                 imgData.data[idx * 4 + 0] = color[0]
-                imgData.data[idx * 4 + 1] = color[1] * 2 // Color offset for debugging purposes
-                imgData.data[idx * 4 + 2] = color[2] * 2
+                imgData.data[idx * 4 + 1] = color[1]
+                imgData.data[idx * 4 + 2] = color[2]
                 imgData.data[idx * 4 + 3] = 255
             }
         }
