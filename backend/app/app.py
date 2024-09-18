@@ -9,6 +9,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 
 from sections import Section, Point2D, split_bits
+from colors import Color, ColorProvider
 
 def create_app():
     app = Flask(__name__)
@@ -75,7 +76,8 @@ def create_app():
     scheduler.add_job(handle_redis_messages, 'interval', seconds=0.1)
     scheduler.start()
 
-    colors = [{'id': 0, 'rgb': [0, 0, 0]}, {'id': 1, 'rgb': [255, 255, 255]}]
+    color_provider = ColorProvider(1, [Color(0, 0, 0), Color(255, 255, 255)])
+    colors = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
 
     @cross_origin
     @app.route('/colors')
