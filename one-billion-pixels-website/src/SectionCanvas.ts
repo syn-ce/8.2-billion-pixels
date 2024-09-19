@@ -510,11 +510,18 @@ export class SectionCanvas {
             this.canvasToScreenPixel(canvasPixel)
         // Pixel which should be centered
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
-        const targetScreenPixel = [
+
+        const targetScreenPixel: [number, number] = [
             topLeftScreenPixelOfCanvasPixel[0] + screenPixelsPerCanvasPixel / 2,
             topLeftScreenPixelOfCanvasPixel[1] + screenPixelsPerCanvasPixel / 2,
         ]
 
+        this.centerScreenPixel(targetScreenPixel)
+    }
+
+    // TODO: turns out we weren't always careful to implement based on the frameScreen, not on the actual screen - maybe
+    // fix this when there's time
+    centerScreenPixel = (targetScreenPixel: [number, number]) => {
         const diffToScreenCenter = [
             window.innerWidth / 2 - targetScreenPixel[0],
             window.innerHeight / 2 - targetScreenPixel[1],
