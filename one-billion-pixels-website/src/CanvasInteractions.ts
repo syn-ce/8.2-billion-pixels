@@ -124,7 +124,6 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
             const touch1 = copyTouch(evt.touches[0 + swapTouchIdx])
             const touch2 = copyTouch(evt.touches[1 - swapTouchIdx])
 
-            // TODO: use movementDeltas, make touch-interactions feel better
             const movementDelta1 = [
                 touch1.x - prevTouch1.x,
                 touch1.y - prevTouch1.y,
@@ -134,6 +133,7 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
                 touch2.y - prevTouch2.y,
             ]
 
+            // Panning by the amount both fingers moved in the same direction
             const sameDirectionMovement: [number, number] = [
                 (movementDelta1[0] + movementDelta2[0]) / 2,
                 (movementDelta1[1] + movementDelta2[1]) / 2,
@@ -142,22 +142,40 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.applyOffsetDiffCheckBounds(sameDirectionMovement)
             sectionCanvas.setCanvasTransform()
 
+            // Zooming into the (not changing) center - Tried changing the center throughout the two-finger interaction, but
+            // that feels very janky; Leaving the center unchanged feels a lot more intuitive
             const center = sectionCanvas.startZoomTouch.center
+            const zoomDelta = [
+                (movementDelta1[0] - movementDelta2[0]) / 2,
+                (movementDelta1[1] - movementDelta2[1]) / 2,
+            ]
 
-            // Determine if they go towards or away from the center
-            const touch1Sign =
-                dist2([touch1.x, touch1.y], [center.x, center.y]) -
-                dist2([prevTouch1.x, prevTouch1.y], [center.x, center.y])
-            const touch2Sign =
-                dist2([touch2.x, touch2.y], [center.x, center.y]) -
-                dist2([prevTouch2.x, prevTouch2.y], [center.x, center.y])
+            const centerToTouch1 = [touch1.x - center.x, touch1.y - center.y]
 
-            if (touch1Sign > 0 && touch2Sign > 0) {
-                sectionCanvas.zoomInto([center.x, center.y], 1.2)
-            } else if (touch1Sign < 0 && touch2Sign < 0) {
-                sectionCanvas.zoomInto([center.x, center.y], 1 / 1.2)
-            }
+            // Determine whether to move in or out because we lose the sign when taking the length of zoomDelta
+            const dotProduct =
+                zoomDelta[0] * centerToTouch1[0] +
+                zoomDelta[1] * centerToTouch1[1]
 
+            const sign = dotProduct < 0 ? -1 : 1
+
+            const prevTouch1Translated = [
+                prevTouch1.x + sameDirectionMovement[0],
+                prevTouch1.y + sameDirectionMovement[1],
+            ]
+
+            const newCenterToA = [
+                prevTouch1Translated[0] - center.x,
+                prevTouch1Translated[1] - center.y,
+            ]
+            const a = Math.sqrt(newCenterToA[0] ** 2 + newCenterToA[1] ** 2)
+
+            const zoomDeltaLen = Math.sqrt(
+                zoomDelta[0] ** 2 + zoomDelta[1] ** 2
+            )
+            const zoomFactor = (sign * zoomDeltaLen + a) / a
+
+            sectionCanvas.zoomInto([center.x, center.y], zoomFactor)
             sectionCanvas.prevZoomTouch = [touch1, touch2]
         }
     }
