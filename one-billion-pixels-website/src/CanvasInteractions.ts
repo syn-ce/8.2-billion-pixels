@@ -23,9 +23,6 @@ const copyTouch = ({
     clientY: number
 }) => ({ id: identifier, x: clientX, y: clientY })
 
-const dist2 = (p1: [number, number], p2: [number, number]) =>
-    (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
-
 // TODO: clicking for centering does not really work on mobile, haven't yet figured out why though
 const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
