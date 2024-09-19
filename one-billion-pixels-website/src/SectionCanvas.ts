@@ -68,7 +68,7 @@ export class SectionCanvas {
         ] // You guessed it
         this.maxZoom = maxZoom
         this.minZoom = 1 / devicePixelRatio
-        this.scale = 1 / (this.maxZoom * devicePixelRatio)
+        this.scale = scale / devicePixelRatio
         this.maxScale = 1
         this.minScale = 1 / (this.maxZoom * devicePixelRatio)
         this.zoomSlider = zoomSlider
@@ -184,7 +184,7 @@ export class SectionCanvas {
         }
         // Remove sections after loop so that we don't modify collection while iterating
         console.log(`Del ${sectionIdsToRemove.size} sections`)
-        sectionIdsToRemove.forEach((id, _, set) => curSections.delete(id))
+        sectionIdsToRemove.forEach((id) => curSections.delete(id))
         this.unsubscribeFromSections(Array.from(sectionIdsToRemove))
 
         const oldRemainingIds = new Set(curSections)

@@ -65,7 +65,7 @@ const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
         sectionCanvas.centerCanvasPixelCheckBounds(canvasPixel)
     }
 
-    canvas.onmouseleave = (evt) => {
+    canvas.onmouseleave = () => {
         sectionCanvas.panning = false
     }
 }

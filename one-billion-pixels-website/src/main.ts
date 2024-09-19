@@ -62,7 +62,7 @@ const canvRetWrapper = <HTMLDivElement>(
 // Start with canvas centered in middle of screen
 const sectionCanvas: SectionCanvas = new SectionCanvas(
     canvas,
-    1,
+    1 / 50,
     new Reticle(reticle, reticleWrapper),
     new Map(sections.map((section) => [section.id, section])),
     new Set(),
