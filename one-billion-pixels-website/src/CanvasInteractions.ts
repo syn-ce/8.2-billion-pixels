@@ -65,7 +65,7 @@ const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.startPanMousePos[1],
         ])
 
-        sectionCanvas.centerCanvasPixel(canvasPixel)
+        sectionCanvas.centerCanvasPixelCheckBounds(canvasPixel)
     }
 
     canvas.onmouseleave = (evt) => {
@@ -153,32 +153,32 @@ const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
 
 const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
     window.addEventListener('keydown', (evt) => {
-        const canvasPixel = sectionCanvas.reticle.curCanvasPixel
+        const curCanvasPixel = sectionCanvas.reticle.curCanvasPixel
         if (evt.code === 'ArrowLeft') {
             // Move to left
             const newCanvasPixel: [number, number] = [
-                canvasPixel[0] - 1,
-                canvasPixel[1],
+                curCanvasPixel[0] - 1,
+                curCanvasPixel[1],
             ]
-            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
         } else if (evt.code === 'ArrowUp') {
             const newCanvasPixel: [number, number] = [
-                canvasPixel[0],
-                canvasPixel[1] - 1,
+                curCanvasPixel[0],
+                curCanvasPixel[1] - 1,
             ]
-            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
         } else if (evt.code === 'ArrowRight') {
             const newCanvasPixel: [number, number] = [
-                canvasPixel[0] + 1,
-                canvasPixel[1],
+                curCanvasPixel[0] + 1,
+                curCanvasPixel[1],
             ]
-            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
         } else if (evt.code === 'ArrowDown') {
             const newCanvasPixel: [number, number] = [
-                canvasPixel[0],
-                canvasPixel[1] + 1,
+                curCanvasPixel[0],
+                curCanvasPixel[1] + 1,
             ]
-            sectionCanvas.centerCanvasPixel(newCanvasPixel)
+            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
         }
     })
 }

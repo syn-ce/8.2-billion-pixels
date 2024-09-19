@@ -279,20 +279,46 @@ export class SectionCanvas {
         //this.reticle.update(this)
     }
 
-    applyOffsetDiffWithBoundsChecking = (diff: [number, number]) => {
+    getSectionContentEdges = () => {
         // Get topleft active section
         const activeSections = Array.from(this.subscribedSectionIds).map(
             (id) => this.sections.get(id)!
         )
 
-        const topLeft = [Number.MAX_VALUE, Number.MAX_VALUE]
-        const botRight = [Number.MIN_VALUE, Number.MIN_VALUE]
+        const contentTopLeft: [number, number] = [
+            Number.MAX_VALUE,
+            Number.MAX_VALUE,
+        ]
+        const contentBotRight: [number, number] = [
+            Number.MIN_VALUE,
+            Number.MIN_VALUE,
+        ]
         activeSections.forEach((section) => {
-            topLeft[0] = Math.min(topLeft[0], section.topLeft[0])
-            topLeft[1] = Math.min(topLeft[1], section.topLeft[1])
-            botRight[0] = Math.max(botRight[0], section.botRight[0])
-            botRight[1] = Math.max(botRight[1], section.botRight[1])
+            contentTopLeft[0] = Math.min(contentTopLeft[0], section.topLeft[0])
+            contentTopLeft[1] = Math.min(contentTopLeft[1], section.topLeft[1])
+            contentBotRight[0] = Math.max(
+                contentBotRight[0],
+                section.botRight[0]
+            )
+            contentBotRight[1] = Math.max(
+                contentBotRight[1],
+                section.botRight[1]
+            )
         })
+
+        return { contentTopLeft, contentBotRight }
+    }
+
+    sectionToCanvasCoords = (sectionCoords: [number, number]) => {
+        return [
+            sectionCoords[0] + this.contentOffset[0],
+            sectionCoords[1] + this.contentOffset[1],
+        ]
+    }
+
+    applyOffsetDiffWithBoundsChecking = (diff: [number, number]) => {
+        const { contentTopLeft, contentBotRight } =
+            this.getSectionContentEdges()
 
         const canvBoundRect = this.canvas.getBoundingClientRect()
         const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
@@ -307,15 +333,15 @@ export class SectionCanvas {
         ]
 
         const canvasToSectionTopLeft = [
-            (topLeft[0] + this.contentOffset[0]) *
+            (contentTopLeft[0] + this.contentOffset[0]) *
                 this.screenPixelsPerCanvasPixel,
-            (topLeft[1] + this.contentOffset[1]) *
+            (contentTopLeft[1] + this.contentOffset[1]) *
                 this.screenPixelsPerCanvasPixel,
         ]
         const canvasToSectionBotRight = [
-            (botRight[0] + this.contentOffset[0] - this.canvas.width) * // TODO: look at this again
+            (contentBotRight[0] + this.contentOffset[0] - this.canvas.width) * // TODO: look at this again
                 this.screenPixelsPerCanvasPixel,
-            (botRight[1] + this.contentOffset[1] - this.canvas.height) *
+            (contentBotRight[1] + this.contentOffset[1] - this.canvas.height) *
                 this.screenPixelsPerCanvasPixel,
         ]
 
@@ -457,6 +483,21 @@ export class SectionCanvas {
 
     get screenPixelsPerCanvasPixel() {
         return this.scale * this.maxZoom
+    }
+
+    centerCanvasPixelCheckBounds = (canvasPixel: [number, number]) => {
+        const { contentTopLeft, contentBotRight } =
+            this.getSectionContentEdges()
+
+        const topLeftInCanvasCoords = this.sectionToCanvasCoords(contentTopLeft)
+        const botRightInCanvasCoords =
+            this.sectionToCanvasCoords(contentBotRight)
+
+        canvasPixel[0] = Math.max(canvasPixel[0], topLeftInCanvasCoords[0])
+        canvasPixel[1] = Math.max(canvasPixel[1], topLeftInCanvasCoords[1])
+        canvasPixel[0] = Math.min(canvasPixel[0], botRightInCanvasCoords[0])
+        canvasPixel[1] = Math.min(canvasPixel[1], botRightInCanvasCoords[1])
+        this.centerCanvasPixel(canvasPixel)
     }
 
     centerCanvasPixel = (canvasPixel: [number, number]) => {
