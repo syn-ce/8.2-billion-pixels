@@ -95,6 +95,16 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
 
         console.log(evt)
     }
+    // When releasing one finger from a two-finger action (e.g. zooming), the other one will get recognised as a panning finger and
+    // the previous pan position will be used as a reference; However, both fingers will likely have moved a fair distance
+    // from it without updating, since it wasn't necessarily a pan- but potentially another, e.g. a zoom, -event. Setting this when
+    // a finger is lifted prevents unexpected jumping around when a two-finger action comes to an end.
+    canvas.ontouchend = (evt) => {
+        if (evt.touches.length == 1) {
+            const touch = evt.touches[0]
+            sectionCanvas.prevPanMousePos = [touch.clientX, touch.clientY]
+        }
+    }
 
     canvas.ontouchmove = (evt) => {
         if (evt.touches.length == 1) {
