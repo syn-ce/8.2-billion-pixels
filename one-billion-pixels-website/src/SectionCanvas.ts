@@ -495,8 +495,8 @@ export class SectionCanvas {
 
         canvasPixel[0] = Math.max(canvasPixel[0], topLeftInCanvasCoords[0])
         canvasPixel[1] = Math.max(canvasPixel[1], topLeftInCanvasCoords[1])
-        canvasPixel[0] = Math.min(canvasPixel[0], botRightInCanvasCoords[0])
-        canvasPixel[1] = Math.min(canvasPixel[1], botRightInCanvasCoords[1])
+        canvasPixel[0] = Math.min(canvasPixel[0], botRightInCanvasCoords[0] - 1) // Remember that botRight is exclusive
+        canvasPixel[1] = Math.min(canvasPixel[1], botRightInCanvasCoords[1] - 1)
         this.centerCanvasPixel(canvasPixel)
     }
 
