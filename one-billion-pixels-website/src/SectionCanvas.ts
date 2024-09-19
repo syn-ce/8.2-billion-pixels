@@ -315,7 +315,7 @@ export class SectionCanvas {
         ]
     }
 
-    applyOffsetDiffWithBoundsChecking = (diff: [number, number]) => {
+    applyOffsetDiffCheckBounds = (diff: [number, number]) => {
         const { contentTopLeft, contentBotRight } =
             this.getSectionContentEdges()
 
@@ -474,7 +474,7 @@ export class SectionCanvas {
         this.scale *= factor
         this.setCanvasTransform() // TODO: Clean this up. Because we are using clientBoundingRects
         // in the applyOffsetDiff function, they have to be up to date -> the scale has to be set.
-        this.applyOffsetDiffWithBoundsChecking(translation)
+        this.applyOffsetDiffCheckBounds(translation)
         this.setCanvasTransform()
     }
 
