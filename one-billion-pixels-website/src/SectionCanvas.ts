@@ -119,10 +119,7 @@ export class SectionCanvas {
                 const sectionPixel = section.sectionPixelIdxToSectionPixel(
                     data.pixelIdx
                 )
-                const canvasPixel = [
-                    sectionPixel[0] + this.contentOffset[0],
-                    sectionPixel[1] + this.contentOffset[1],
-                ]
+                const canvasPixel = this.sectionToCanvasPixel(sectionPixel)
 
                 const color = this.colorProvider.getColorById(data.color)
                 if (color === undefined) return
@@ -135,32 +132,23 @@ export class SectionCanvas {
         )
     }
 
-    userSetPixel = (
-        canvasPixel: [number, number],
-        colorId: number,
-        sectionCanvas: SectionCanvas
-    ) => {
-        const sectionCoords: [number, number] = [
-            canvasPixel[0] - this.contentOffset[0],
-            canvasPixel[1] - this.contentOffset[1],
-        ]
+    userSetPixel = (canvasPixel: [number, number], colorId: number) => {
+        const sectionCoords = this.canvasToSectionPixel(canvasPixel)
 
         // TODO: maybe think about doing something more efficient here, but at the same time
         // how many concurrent subscribed sections will one have? More than 100 (even more than ~ 10)
         // for an average full hd screen seems unlikely with what I have in mind right now
-        const sectionId = Array.from(sectionCanvas.subscribedSectionIds).find(
-            (id) => {
-                const sec = sectionCanvas.sections.get(id)!
-                return (
-                    sec.topLeft[0] <= sectionCoords[0] &&
-                    sec.topLeft[1] <= sectionCoords[1] &&
-                    sectionCoords[0] < sec.botRight[0] &&
-                    sectionCoords[1] < sec.botRight[1]
-                )
-            }
-        )!
+        const sectionId = Array.from(this.subscribedSectionIds).find((id) => {
+            const sec = this.sections.get(id)!
+            return (
+                sec.topLeft[0] <= sectionCoords[0] &&
+                sec.topLeft[1] <= sectionCoords[1] &&
+                sectionCoords[0] < sec.botRight[0] &&
+                sectionCoords[1] < sec.botRight[1]
+            )
+        })!
 
-        const section = sectionCanvas.sections.get(sectionId)!
+        const section = this.sections.get(sectionId)!
 
         const sectionPixelIdx = section.sectionPxlToSectionPxlIdx(sectionCoords)
 
@@ -309,10 +297,21 @@ export class SectionCanvas {
         return { contentTopLeft, contentBotRight }
     }
 
-    sectionToCanvasCoords = (sectionCoords: [number, number]) => {
+    sectionToCanvasPixel = (
+        sectionCoords: [number, number]
+    ): [number, number] => {
         return [
             sectionCoords[0] + this.contentOffset[0],
             sectionCoords[1] + this.contentOffset[1],
+        ]
+    }
+
+    canvasToSectionPixel = (
+        canvasPixel: [number, number]
+    ): [number, number] => {
+        return [
+            canvasPixel[0] - this.contentOffset[0],
+            canvasPixel[1] - this.contentOffset[1],
         ]
     }
 
@@ -332,18 +331,16 @@ export class SectionCanvas {
             canvBoundRect.bottom - screenFrameBoundRect.bottom,
         ]
 
-        const canvasToSectionTopLeft = [
-            (contentTopLeft[0] + this.contentOffset[0]) *
-                this.screenPixelsPerCanvasPixel,
-            (contentTopLeft[1] + this.contentOffset[1]) *
-                this.screenPixelsPerCanvasPixel,
-        ]
-        const canvasToSectionBotRight = [
-            (contentBotRight[0] + this.contentOffset[0] - this.canvas.width) * // TODO: look at this again
-                this.screenPixelsPerCanvasPixel,
-            (contentBotRight[1] + this.contentOffset[1] - this.canvas.height) *
-                this.screenPixelsPerCanvasPixel,
-        ]
+        const canvasToSectionTopLeft = this.sectionToCanvasPixel(contentTopLeft)
+        canvasToSectionTopLeft[0] *= this.screenPixelsPerCanvasPixel // Convert to screen pixel units
+        canvasToSectionTopLeft[1] *= this.screenPixelsPerCanvasPixel
+
+        const canvasToSectionBotRight =
+            this.sectionToCanvasPixel(contentBotRight)
+        canvasToSectionBotRight[0] -= this.canvas.width // In this approach we effectively make the canvas' bottom right the origin
+        canvasToSectionBotRight[1] -= this.canvas.height // TODO: look at this again
+        canvasToSectionBotRight[0] *= this.screenPixelsPerCanvasPixel
+        canvasToSectionBotRight[1] *= this.screenPixelsPerCanvasPixel
 
         const screenFrameToSectionTopLeft = [
             screenFrameToCanvasTopLeft[0] + canvasToSectionTopLeft[0],
@@ -489,9 +486,9 @@ export class SectionCanvas {
         const { contentTopLeft, contentBotRight } =
             this.getSectionContentEdges()
 
-        const topLeftInCanvasCoords = this.sectionToCanvasCoords(contentTopLeft)
+        const topLeftInCanvasCoords = this.sectionToCanvasPixel(contentTopLeft)
         const botRightInCanvasCoords =
-            this.sectionToCanvasCoords(contentBotRight)
+            this.sectionToCanvasPixel(contentBotRight)
 
         canvasPixel[0] = Math.max(canvasPixel[0], topLeftInCanvasCoords[0])
         canvasPixel[1] = Math.max(canvasPixel[1], topLeftInCanvasCoords[1])

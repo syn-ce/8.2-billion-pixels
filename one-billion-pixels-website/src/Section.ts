@@ -50,17 +50,20 @@ export class Section implements SectionAttributes {
         )
     }
 
-    sectionPixelIdxToSectionPixel = (sectionPixelIdx: number) => {
+    sectionPixelIdxToSectionPixel = (
+        sectionPixelIdx: number
+    ): [number, number] => {
         const x = sectionPixelIdx % this.width
         const y = (sectionPixelIdx - x) / this.width
         return [x, y]
     }
 
     drawOnSectionCanvas = (sectionCanvas: SectionCanvas) => {
+        const canvasPixel = sectionCanvas.sectionToCanvasPixel(this.topLeft)
         sectionCanvas.ctx.putImageData(
             this.imgData!,
-            this.topLeft[0] + sectionCanvas.contentOffset[0],
-            this.topLeft[1] + sectionCanvas.contentOffset[1]
+            canvasPixel[0],
+            canvasPixel[1]
         )
     }
 

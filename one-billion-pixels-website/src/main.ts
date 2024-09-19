@@ -79,8 +79,7 @@ const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')
 setPixelBtn.onclick = async () => {
     sectionCanvas.userSetPixel(
         sectionCanvas.reticle.curCanvasPixel,
-        colorPicker.curColorChoice.id,
-        sectionCanvas
+        colorPicker.curColorChoice.id
     )
 }
 
