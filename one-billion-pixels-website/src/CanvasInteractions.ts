@@ -125,16 +125,18 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
             ]
 
             const center = sectionCanvas.startZoomTouch.center
+
             // Determine if they go towards or away from the center
-            const touch1GoesOutwards =
-                dist2([touch1.x, touch1.y], [center.x, center.y]) >
+            const touch1Sign =
+                dist2([touch1.x, touch1.y], [center.x, center.y]) -
                 dist2([prevTouch1.x, prevTouch1.y], [center.x, center.y])
-            const touch2GoesOutwards =
-                dist2([touch2.x, touch2.y], [center.x, center.y]) >
+            const touch2Sign =
+                dist2([touch2.x, touch2.y], [center.x, center.y]) -
                 dist2([prevTouch2.x, prevTouch2.y], [center.x, center.y])
-            if (touch1GoesOutwards && touch2GoesOutwards) {
+
+            if (touch1Sign > 0 && touch2Sign > 0) {
                 sectionCanvas.zoomInto([center.x, center.y], 1.2)
-            } else if (!touch1GoesOutwards && !touch2GoesOutwards) {
+            } else if (touch1Sign < 0 && touch2Sign < 0) {
                 sectionCanvas.zoomInto([center.x, center.y], 1 / 1.2)
             }
 
