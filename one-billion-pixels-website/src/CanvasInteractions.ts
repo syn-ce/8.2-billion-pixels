@@ -134,6 +134,14 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
                 touch2.y - prevTouch2.y,
             ]
 
+            const sameDirectionMovement: [number, number] = [
+                (movementDelta1[0] + movementDelta2[0]) / 2,
+                (movementDelta1[1] + movementDelta2[1]) / 2,
+            ]
+
+            sectionCanvas.applyOffsetDiffCheckBounds(sameDirectionMovement)
+            sectionCanvas.setCanvasTransform()
+
             const center = sectionCanvas.startZoomTouch.center
 
             // Determine if they go towards or away from the center
