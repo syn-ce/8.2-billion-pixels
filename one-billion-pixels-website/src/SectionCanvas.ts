@@ -279,6 +279,76 @@ export class SectionCanvas {
         //this.reticle.update(this)
     }
 
+    applyOffsetDiffWithBoundsChecking = (diff: [number, number]) => {
+        // Get topleft active section
+        const activeSections = Array.from(this.subscribedSectionIds).map(
+            (id) => this.sections.get(id)!
+        )
+
+        const topLeft = [Number.MAX_VALUE, Number.MAX_VALUE]
+        const botRight = [Number.MIN_VALUE, Number.MIN_VALUE]
+        activeSections.forEach((section) => {
+            topLeft[0] = Math.min(topLeft[0], section.topLeft[0])
+            topLeft[1] = Math.min(topLeft[1], section.topLeft[1])
+            botRight[0] = Math.max(botRight[0], section.botRight[0])
+            botRight[1] = Math.max(botRight[1], section.botRight[1])
+        })
+
+        const canvBoundRect = this.canvas.getBoundingClientRect()
+        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+
+        const screenFrameToCanvasTopLeft = [
+            canvBoundRect.left - screenFrameBoundRect.left,
+            canvBoundRect.top - screenFrameBoundRect.top,
+        ]
+        const screenFrameToCanvasBotRight = [
+            canvBoundRect.right - screenFrameBoundRect.right,
+            canvBoundRect.bottom - screenFrameBoundRect.bottom,
+        ]
+
+        const canvasToSectionTopLeft = [
+            (topLeft[0] + this.contentOffset[0]) *
+                this.screenPixelsPerCanvasPixel,
+            (topLeft[1] + this.contentOffset[1]) *
+                this.screenPixelsPerCanvasPixel,
+        ]
+        const canvasToSectionBotRight = [
+            (botRight[0] + this.contentOffset[0] - this.canvas.width) * // TODO: look at this again
+                this.screenPixelsPerCanvasPixel,
+            (botRight[1] + this.contentOffset[1] - this.canvas.height) *
+                this.screenPixelsPerCanvasPixel,
+        ]
+
+        const screenFrameToSectionTopLeft = [
+            screenFrameToCanvasTopLeft[0] + canvasToSectionTopLeft[0],
+            screenFrameToCanvasTopLeft[1] + canvasToSectionTopLeft[1],
+        ]
+        const screenFrameToSectionBotRight = [
+            screenFrameToCanvasBotRight[0] + canvasToSectionBotRight[0],
+            screenFrameToCanvasBotRight[1] + canvasToSectionBotRight[1],
+        ]
+
+        const canvasBoundarySize = [
+            screenFrameBoundRect.width / 2,
+            screenFrameBoundRect.height / 2,
+        ]
+
+        // TODO: this overshoots a bit when at the edge, probably because of numerical inaccuracies
+        // This can probably be fixed by introducing a 1 pixel "inset" towards the canvas center
+        // or something along those lines
+        if (screenFrameToSectionTopLeft[0] + diff[0] >= canvasBoundarySize[0])
+            diff[0] = canvasBoundarySize[0] - screenFrameToSectionTopLeft[0]
+        if (screenFrameToSectionTopLeft[1] + diff[1] >= canvasBoundarySize[1])
+            diff[1] = canvasBoundarySize[1] - screenFrameToSectionTopLeft[1]
+        if (screenFrameToSectionBotRight[0] + diff[0] <= -canvasBoundarySize[0])
+            diff[0] = -canvasBoundarySize[0] - screenFrameToSectionBotRight[0]
+        if (screenFrameToSectionBotRight[1] + diff[1] <= -canvasBoundarySize[1])
+            diff[1] = -canvasBoundarySize[1] - screenFrameToSectionBotRight[1]
+
+        this.offset[0] += diff[0]
+        this.offset[1] += diff[1]
+    }
+
     setCanvasTransform = () => {
         this.checkBuffers()
         this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.scale})`
@@ -370,7 +440,7 @@ export class SectionCanvas {
         ]
 
         // Difference in pixels from zoomPoint to canvas center after zoom (compared to before)
-        const translation = [
+        const translation: [number, number] = [
             diffToCenter[0] * (factor - 1),
             diffToCenter[1] * (factor - 1),
         ]
@@ -379,8 +449,9 @@ export class SectionCanvas {
         translation[1] = translation[1]
 
         this.scale *= factor
-        this.offset[0] += translation[0]
-        this.offset[1] += translation[1]
+        this.setCanvasTransform() // TODO: Clean this up. Because we are using clientBoundingRects
+        // in the applyOffsetDiff function, they have to be up to date -> the scale has to be set.
+        this.applyOffsetDiffWithBoundsChecking(translation)
         this.setCanvasTransform()
     }
 
@@ -389,6 +460,7 @@ export class SectionCanvas {
     }
 
     centerCanvasPixel = (canvasPixel: [number, number]) => {
+        //if (canvasPixel[0] < 0) return
         const topLeftScreenPixelOfCanvasPixel =
             this.canvasToScreenPixel(canvasPixel)
         // Pixel which should be centered

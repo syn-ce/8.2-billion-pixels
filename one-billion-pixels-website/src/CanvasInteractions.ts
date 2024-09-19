@@ -37,13 +37,12 @@ const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
 
     canvas.onmousemove = (evt) => {
         if (!sectionCanvas.panning) return
-        const diff = [
+        const diff: [number, number] = [
             evt.x - sectionCanvas.prevPanMousePos[0],
             evt.y - sectionCanvas.prevPanMousePos[1],
         ]
 
-        sectionCanvas.offset[0] += diff[0]
-        sectionCanvas.offset[1] += diff[1]
+        sectionCanvas.applyOffsetDiffWithBoundsChecking(diff)
         sectionCanvas.prevPanMousePos = [evt.x, evt.y]
         sectionCanvas.setCanvasTransform()
     }
@@ -100,12 +99,11 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     canvas.ontouchmove = (evt) => {
         if (evt.touches.length == 1) {
             const touch = evt.touches[0]
-            const diff = [
+            const diff: [number, number] = [
                 touch.clientX - sectionCanvas.prevPanMousePos[0],
                 touch.clientY - sectionCanvas.prevPanMousePos[1],
             ]
-            sectionCanvas.offset[0] += diff[0]
-            sectionCanvas.offset[1] += diff[1]
+            sectionCanvas.applyOffsetDiffWithBoundsChecking(diff)
             sectionCanvas.prevPanMousePos = [touch.clientX, touch.clientY]
             sectionCanvas.setCanvasTransform()
         } else if (evt.touches.length == 2) {
