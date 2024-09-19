@@ -351,9 +351,16 @@ export class SectionCanvas {
             screenFrameToCanvasBotRight[1] + canvasToSectionBotRight[1],
         ]
 
+        // This reflects the maximum (screen pixel) size that the boundary around the canvas can take up on the screen
+        // - 0.1 to avoid overshoot when panning/zooming at the edges of the section content. Note that on displays
+        // with a ridiculously high devicePixelRatio (suspect 5 and above) this might lead to issues, namely that
+        // when zoomed out to minZoom (i.e. as far as possible) the pixels on the edges could not be centered
+        // anymore; Similarly, zooming out from an edge-pixel and then zooming in again would lead to the pixel
+        // next to it (towards the screen center) being focused, rather than the original edge pixel
+        // If this becomes a serious issue give it a look again, for now this appears to be an adequate fix
         const canvasBoundarySize = [
-            screenFrameBoundRect.width / 2,
-            screenFrameBoundRect.height / 2,
+            screenFrameBoundRect.width / 2 - 0.1,
+            screenFrameBoundRect.height / 2 - 0.1,
         ]
 
         // TODO: this overshoots a bit when at the edge, probably because of numerical inaccuracies
