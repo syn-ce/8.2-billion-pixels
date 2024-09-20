@@ -101,9 +101,11 @@ export class SectionCanvas {
         addAllInteractivityToSectionCanvas(this)
 
         this.zoomSlider.addInputCallback((zoomValue) => {
+            const screenFrameBoundRect =
+                this.screenFrame.getBoundingClientRect()
             const screenCenter: [number, number] = [
-                window.innerWidth / 2,
-                window.innerHeight / 2,
+                screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
+                screenFrameBoundRect.top + screenFrameBoundRect.height / 2,
             ]
             const factor = zoomValue / (this.scale * this.maxZoom)
             this.zoomInto(screenCenter, factor)
@@ -538,10 +540,11 @@ export class SectionCanvas {
         steps: number
     ) => {
         // TODO: does not respect screenFrame - see TODO somwhere below
+        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
         const startSectionCoords: [number, number] = this.canvasToSectionCoords(
             this.screenToCanvasCoords([
-                window.innerWidth / 2,
-                window.innerHeight / 2,
+                screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
+                screenFrameBoundRect.top + screenFrameBoundRect.height / 2,
             ])
         )
 
@@ -597,12 +600,15 @@ export class SectionCanvas {
         this.centerScreenPixel(screenPixel)
     }
 
-    // TODO: turns out we weren't always careful to implement based on the frameScreen, not on the actual screen - maybe
-    // fix this when there's time
     centerScreenPixel = (targetScreenPixel: [number, number]) => {
+        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
         const diffToScreenCenter = [
-            window.innerWidth / 2 - targetScreenPixel[0],
-            window.innerHeight / 2 - targetScreenPixel[1],
+            screenFrameBoundRect.left +
+                screenFrameBoundRect.width / 2 -
+                targetScreenPixel[0],
+            screenFrameBoundRect.top +
+                screenFrameBoundRect.height / 2 -
+                targetScreenPixel[1],
         ]
         diffToScreenCenter[0] = Math.round(diffToScreenCenter[0])
         diffToScreenCenter[1] = Math.round(diffToScreenCenter[1])
