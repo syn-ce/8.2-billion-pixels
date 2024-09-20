@@ -59,7 +59,7 @@ export class Section implements SectionAttributes {
     }
 
     drawOnSectionCanvas = (sectionCanvas: SectionCanvas) => {
-        const canvasPixel = sectionCanvas.sectionToCanvasPixel(this.topLeft)
+        const canvasPixel = sectionCanvas.sectionToCanvasCoords(this.topLeft)
         sectionCanvas.ctx.putImageData(
             this.imgData!,
             canvasPixel[0],

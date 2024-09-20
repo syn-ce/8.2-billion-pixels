@@ -62,7 +62,11 @@ const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.startPanMousePos[1],
         ])
 
-        sectionCanvas.centerCanvasPixelCheckBounds(canvasPixel)
+        sectionCanvas.centerCanvasPixelCheckBoundsApplyEasing(
+            canvasPixel,
+            100,
+            5
+        )
     }
 
     canvas.onmouseleave = () => {

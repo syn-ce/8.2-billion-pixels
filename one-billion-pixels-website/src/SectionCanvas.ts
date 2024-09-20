@@ -119,7 +119,7 @@ export class SectionCanvas {
                 const sectionPixel = section.sectionPixelIdxToSectionPixel(
                     data.pixelIdx
                 )
-                const canvasPixel = this.sectionToCanvasPixel(sectionPixel)
+                const canvasPixel = this.sectionToCanvasCoords(sectionPixel)
 
                 const color = this.colorProvider.getColorById(data.color)
                 if (color === undefined) return
@@ -133,7 +133,7 @@ export class SectionCanvas {
     }
 
     userSetPixel = (canvasPixel: [number, number], colorId: number) => {
-        const sectionCoords = this.canvasToSectionPixel(canvasPixel)
+        const sectionCoords = this.canvasToSectionCoords(canvasPixel)
 
         // TODO: maybe think about doing something more efficient here, but at the same time
         // how many concurrent subscribed sections will one have? More than 100 (even more than ~ 10)
@@ -297,7 +297,7 @@ export class SectionCanvas {
         return { contentTopLeft, contentBotRight }
     }
 
-    sectionToCanvasPixel = (
+    sectionToCanvasCoords = (
         sectionCoords: [number, number]
     ): [number, number] => {
         return [
@@ -306,7 +306,7 @@ export class SectionCanvas {
         ]
     }
 
-    canvasToSectionPixel = (
+    canvasToSectionCoords = (
         canvasPixel: [number, number]
     ): [number, number] => {
         return [
@@ -331,12 +331,13 @@ export class SectionCanvas {
             canvBoundRect.bottom - screenFrameBoundRect.bottom,
         ]
 
-        const canvasToSectionTopLeft = this.sectionToCanvasPixel(contentTopLeft)
+        const canvasToSectionTopLeft =
+            this.sectionToCanvasCoords(contentTopLeft)
         canvasToSectionTopLeft[0] *= this.screenPixelsPerCanvasPixel // Convert to screen pixel units
         canvasToSectionTopLeft[1] *= this.screenPixelsPerCanvasPixel
 
         const canvasToSectionBotRight =
-            this.sectionToCanvasPixel(contentBotRight)
+            this.sectionToCanvasCoords(contentBotRight)
         canvasToSectionBotRight[0] -= this.canvas.width // In this approach we effectively make the canvas' bottom right the origin
         canvasToSectionBotRight[1] -= this.canvas.height // TODO: look at this again
         canvasToSectionBotRight[0] *= this.screenPixelsPerCanvasPixel
@@ -426,24 +427,34 @@ export class SectionCanvas {
         }
     }
 
-    screenToCanvasPixel = (screenPixel: [number, number]): [number, number] => {
+    screenToCanvasCoords = (
+        screenCoords: [number, number]
+    ): [number, number] => {
         const canvBoundRect = this.canvas.getBoundingClientRect()
 
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
 
         const canvasCoords: [number, number] = [
-            (screenPixel[0] - canvBoundRect.left) / screenPixelsPerCanvasPixel,
-            (screenPixel[1] - canvBoundRect.top) / screenPixelsPerCanvasPixel,
+            (screenCoords[0] - canvBoundRect.left) / screenPixelsPerCanvasPixel,
+            (screenCoords[1] - canvBoundRect.top) / screenPixelsPerCanvasPixel,
         ]
-
-        // Flooring is the correct thing to do here
-        canvasCoords[0] = Math.floor(canvasCoords[0])
-        canvasCoords[1] = Math.floor(canvasCoords[1])
 
         return canvasCoords
     }
 
-    canvasToScreenPixel = (canvasPixel: [number, number]): [number, number] => {
+    screenToCanvasPixel = (screenPixel: [number, number]): [number, number] => {
+        const canvasCoords = this.screenToCanvasCoords(screenPixel)
+        // Flooring is the correct thing to do here
+        const canvasPixel: [number, number] = [
+            Math.floor(canvasCoords[0]),
+            Math.floor(canvasCoords[1]),
+        ]
+        return canvasPixel
+    }
+
+    canvasToScreenCoords = (
+        canvasPixel: [number, number]
+    ): [number, number] => {
         const canvBoundRect = this.canvas.getBoundingClientRect()
 
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
@@ -490,24 +501,81 @@ export class SectionCanvas {
     }
 
     centerCanvasPixelCheckBounds = (canvasPixel: [number, number]) => {
+        this.centerCanvasPixelCheckBoundsApplyEasing(canvasPixel, 0, 1)
+    }
+
+    centerCanvasPixelCheckBoundsApplyEasing = (
+        canvasPixel: [number, number],
+        easingDuration: number,
+        easingSteps: number
+    ) => {
         const { contentTopLeft, contentBotRight } =
             this.getSectionContentEdges()
 
-        const topLeftInCanvasCoords = this.sectionToCanvasPixel(contentTopLeft)
+        const topLeftInCanvasCoords = this.sectionToCanvasCoords(contentTopLeft)
         const botRightInCanvasCoords =
-            this.sectionToCanvasPixel(contentBotRight)
+            this.sectionToCanvasCoords(contentBotRight)
 
         canvasPixel[0] = Math.max(canvasPixel[0], topLeftInCanvasCoords[0])
         canvasPixel[1] = Math.max(canvasPixel[1], topLeftInCanvasCoords[1])
         canvasPixel[0] = Math.min(canvasPixel[0], botRightInCanvasCoords[0] - 1) // Remember that botRight is exclusive
         canvasPixel[1] = Math.min(canvasPixel[1], botRightInCanvasCoords[1] - 1)
-        this.centerCanvasPixel(canvasPixel)
+        this.centerCanvasPixelApplyEasing(
+            canvasPixel,
+            easingDuration,
+            easingSteps
+        )
+    }
+
+    // We are using section coordinates in this function because they stay
+    // "constant" throughout the interaction. Screenpixels will change
+    // relative to the pixels of the canvas, and even the canvas itself (and
+    // therefore the values of its pixels) might move (because of the canvas
+    // offset mechanism)
+    centerCanvasPixelApplyEasing = (
+        canvasPixel: [number, number],
+        durationMs: number,
+        steps: number
+    ) => {
+        // TODO: does not respect screenFrame - see TODO somwhere below
+        const startSectionCoords: [number, number] = this.canvasToSectionCoords(
+            this.screenToCanvasCoords([
+                window.innerWidth / 2,
+                window.innerHeight / 2,
+            ])
+        )
+
+        const goalSectionCoords = this.canvasToSectionCoords(canvasPixel)
+        goalSectionCoords[0] += 0.5 // Want to center the center of the section pixel
+        goalSectionCoords[1] += 0.5
+
+        const diff = [
+            goalSectionCoords[0] - startSectionCoords[0],
+            goalSectionCoords[1] - startSectionCoords[1],
+        ]
+
+        const delay = durationMs / steps
+
+        const _centerCanvasPixelEasingRec = (step: number) => {
+            if (step > steps) return
+
+            const next: [number, number] = [
+                startSectionCoords[0] + (diff[0] * step) / steps,
+                startSectionCoords[1] + (diff[1] * step) / steps,
+            ]
+
+            this.centerSectionCoords(next)
+
+            setTimeout(() => _centerCanvasPixelEasingRec(step + 1), delay)
+        }
+
+        _centerCanvasPixelEasingRec(1) // Step from 1 to steps
     }
 
     centerCanvasPixel = (canvasPixel: [number, number]) => {
         //if (canvasPixel[0] < 0) return
         const topLeftScreenPixelOfCanvasPixel =
-            this.canvasToScreenPixel(canvasPixel)
+            this.canvasToScreenCoords(canvasPixel)
         // Pixel which should be centered
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
 
@@ -517,6 +585,16 @@ export class SectionCanvas {
         ]
 
         this.centerScreenPixel(targetScreenPixel)
+    }
+
+    centerSectionCoords = (sectionCoords: [number, number]) => {
+        // Convert to screenPixel
+        const screenPixel = this.canvasToScreenCoords(
+            this.sectionToCanvasCoords(sectionCoords)
+        )
+        screenPixel[0]
+        screenPixel[1]
+        this.centerScreenPixel(screenPixel)
     }
 
     // TODO: turns out we weren't always careful to implement based on the frameScreen, not on the actual screen - maybe
