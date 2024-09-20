@@ -10,7 +10,9 @@ services:
     flask-app:
         depends_on:
             - redis
-        build: ./backend
+        build:
+            context: ./backend
+            target: development
         volumes:
             - ./backend/app:/app
         environment:
@@ -21,7 +23,9 @@ services:
     website:
         depends_on:
             - flask-app
-        build: ./one-billion-pixels-website
+        build:
+            context: ./one-billion-pixels-website
+            target: development
         ports:
             - 5173:8000
         volumes:
