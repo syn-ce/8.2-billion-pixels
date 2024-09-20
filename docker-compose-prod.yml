@@ -1,0 +1,38 @@
+services:
+    flask-app:
+        depends_on:
+            - redis
+        build:
+            context: ./backend
+            target: production
+        environment:
+            - FLASK_ENV=production
+        deploy:
+            replicas: 2
+        networks:
+            - frontend
+            - backend
+    nginx:
+        depends_on:
+            - flask-app
+        build:
+            context: ./one-billion-pixels-website
+            target: production
+        ports:
+            - 8000:80
+        networks:
+            - frontend
+    redis:
+        image: 'redis:alpine'
+        networks:
+            - backend
+
+    redisinsight:
+        image: 'redislabs/redisinsight:latest'
+        ports:
+            - 5540:5540
+        networks:
+            - backend
+networks:
+    frontend:
+    backend:
