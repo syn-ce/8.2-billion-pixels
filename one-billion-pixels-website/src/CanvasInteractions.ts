@@ -93,8 +93,6 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
             }
             sectionCanvas.startZoomTouch = { touch1, touch2, center }
         }
-
-        console.log(evt)
     }
     // When releasing one finger from a two-finger action (e.g. zooming), the other one will get recognised as a panning finger and
     // the previous pan position will be used as a reference; However, both fingers will likely have moved a fair distance

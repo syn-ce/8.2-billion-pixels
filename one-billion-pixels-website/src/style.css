@@ -29,7 +29,6 @@ a:hover {
 body {
     margin: 0;
     display: flex;
-    overflow: hidden;
     justify-content: center;
     width: 100vw;
     height: 100vh;

@@ -37,6 +37,7 @@ export class SectionCanvas {
     zoomSlider: ZoomSlider
     canvRetWrapper: HTMLDivElement
     colorProvider: ColorProvider
+    curAnimationTimeoutId: number
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -86,6 +87,7 @@ export class SectionCanvas {
         this.socket = socket
         this.screenFrame = screenFrame
         this.panZoomWrapper = panZoomWrapper
+        this.curAnimationTimeoutId = -1
 
         const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
         const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
@@ -529,6 +531,10 @@ export class SectionCanvas {
         )
     }
 
+    stopAnimation = () => {
+        clearTimeout(this.curAnimationTimeoutId)
+    }
+
     // We are using section coordinates in this function because they stay
     // "constant" throughout the interaction. Screenpixels will change
     // relative to the pixels of the canvas, and even the canvas itself (and
@@ -539,6 +545,9 @@ export class SectionCanvas {
         durationMs: number,
         steps: number
     ) => {
+        // Clear previous animation (if still active, otherwise this does nothing)
+        // TODO: this assumes that all timeouts are completed before the next one is scheduled, which is actually a decently irresponsible assumption to make
+        this.stopAnimation()
         // TODO: does not respect screenFrame - see TODO somwhere below
         const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
         const startSectionCoords: [number, number] = this.canvasToSectionCoords(
@@ -569,7 +578,10 @@ export class SectionCanvas {
 
             this.centerSectionCoords(next)
 
-            setTimeout(() => _centerCanvasPixelEasingRec(step + 1), delay)
+            this.curAnimationTimeoutId = setTimeout(
+                () => _centerCanvasPixelEasingRec(step + 1),
+                delay
+            )
         }
 
         _centerCanvasPixelEasingRec(1) // Step from 1 to steps
