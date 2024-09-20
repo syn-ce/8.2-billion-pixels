@@ -77,6 +77,7 @@ const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
 const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.ontouchstart = (evt) => {
+        sectionCanvas.stopAnimation() // Don't hinder user in starting a new interaction
         if (evt.touches.length == 1) {
             // Pan
             const touch = evt.touches[0]
