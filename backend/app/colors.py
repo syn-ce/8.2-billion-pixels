@@ -3,6 +3,7 @@ import heapq
 
 
 class Color:
+    value24bit: int
     r: int
     g: int
     b: int
@@ -11,16 +12,26 @@ class Color:
         self.r = r
         self.g = g
         self.b = b
+        self.value24bit = self.r
+        self.value24bit = (self.value24bit << 8) + self.g
+        self.value24bit = (self.value24bit << 8) + self.b
     
     @classmethod
     def from_rgb(cls, rgb: tuple[int, int, int]):
         return cls(rgb[0], rgb[1], rgb[2])
     
+    @classmethod
+    def from_24bit(cls, val: int):
+        r = (val >> 16) & 0xFF
+        g = (val >> 8) & 0xFF
+        b = val & 0xFF
+        return cls(r, g, b)
+    
     def rgb(self):
         return tuple([self.r, self.g, self.b])
     
     def __hash__(self):
-        return hash(tuple([self.r, self.g, self.b]))
+        return hash(self.value24bit)
     
     def __eq__(self, other):
         if type(other) is type(self):

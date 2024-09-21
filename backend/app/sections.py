@@ -1,25 +1,43 @@
+import struct
 from typing import TypedDict
 from math import sqrt
+import logging
 
 type Point2D = tuple[int, int]
-Section = TypedDict('Section', {'topLeft': Point2D, 'botRight': Point2D, 'id': int})
+SectionJson = TypedDict('SectionJson', {'topLeft': Point2D, 'botRight': Point2D, 'id': int})
+
+class Section:
+    s = struct.Struct('IIIII')
+    top_left:  Point2D
+    bot_right: Point2D
+    id: int
+    def __init__(self, top_left: Point2D, bot_right: Point2D, id: int):
+        self.top_left = top_left
+        self.bot_right = bot_right
+        self.id = id
+    
+    def to_bytes(self):
+        return self.s.pack(self.top_left[0], self.top_left[1], self.bot_right[0], self.bot_right[1], self.id)
+    
+    @classmethod
+    def from_bytes(cls, sec_bytes):
+        vals = cls.s.unpack(sec_bytes)
+        return cls((vals[0], vals[1]), (vals[2], vals[3]), vals[4])
+    
+    def to_json(self) -> SectionJson :
+        return {'topLeft': self.top_left, 'botRight': self.bot_right, 'id': self.id}
+
+    def __repr__(self):
+        return f'Section(tl={self.top_left},br={self.bot_right},id={self.id})'
+
 
 # TODO: Actually think about how to approach the ids - in case of an expansion, the current approach would rename some sections
-def split_bits(n: int, rel_width: int, rel_height: int, rows: int, cols: int) -> list[Section]:
-    width = int(sqrt(n / (rel_width * rel_height)) * rel_width)
-    height = int(n / width)
-    
-    if width * height != n or width % cols != 0 or height % rows != 0: # Verify that dimensions check out
-        raise ValueError()
-    
-    section_w = width / cols
-    section_h = height / rows
-
+def split_bits(section_w: int, section_h: int, start_top_left: Point2D, rows: int, cols: int) -> list[Section]:
     sections: list[Section] = []
     for row in range(rows):
         for col in range(cols):
-            topLeft = (col * section_w, row * section_h)
-            botRight = (col + 1) * section_w, (row + 1) * section_h
-            sections.append({'topLeft': topLeft, 'botRight': botRight, 'id': row * cols + col})
-    
+            top_left = (col * section_w + start_top_left[0], row * section_h + start_top_left[1])
+            bot_right = (col + 1) * section_w + start_top_left[0], (row + 1) * section_h + start_top_left[1]
+            sections.append(Section(top_left, bot_right, row * cols + col))
+
     return sections
