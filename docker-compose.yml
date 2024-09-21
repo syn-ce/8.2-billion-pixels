@@ -18,7 +18,7 @@ services:
         environment:
             - FLASK_ENV=development
         deploy:
-            replicas: 2
+            replicas: 1
 
     website:
         depends_on:
