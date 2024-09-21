@@ -1,6 +1,6 @@
 import os
 
-workers = int(os.environ.get('GUNICORN_PROCESSES', '1'))
+workers = int(os.environ.get('GUNICORN_PROCESSES', '4'))
 
 threads = int(os.environ.get('GUNICORN_THREADS', '4'))
 
