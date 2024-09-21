@@ -125,20 +125,3 @@ def on_starting(server: Arbiter):
         setup_redis(redis, True, cur_bits_per_color, BITS_PER_COLOR, NR_COLS, NR_ROWS, 
                         SEC_WIDTH, SEC_HEIGHT, cur_sec_width, cur_sec_height, START_TOP_LEFT, COLORS)
 
-    # color_provider = ColorProvider(bits_per_color, [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)])
-    # colors = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
-    # app.logger.info(colors)
-
-    # sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 40, 25)
-    # print(len(sections))
-    # print(sections[0])
-    ## Store the sections as bits in redis
-    ## TODO: use pipelining or scripting
-    # for section in sections:
-    #    width = int(section['botRight'][0] -  section['topLeft'][0])
-    #    height = int(section['botRight'][1] - section['topLeft'][1])
-    #    nr_bits = width * height * bits_per_color
-    #    #remainder = total % 8
-    #    # TODO: reconsider remainder
-    #    #redis.set(section['id'], '') # Clear (for development)
-    #    redis.setbit(section['id'], nr_bits - 1, 0)
