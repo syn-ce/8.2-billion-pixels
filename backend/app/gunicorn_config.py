@@ -7,7 +7,7 @@ from gunicorn.arbiter import Arbiter
 import logging
 
 from RedisKeys import RedisKeys
-from colors import Color
+from colors import Color, ColorProvider
 from sections import Point2D, Section, split_bits
 
 workers = int(os.environ.get('GUNICORN_PROCESSES', '4'))
@@ -46,14 +46,14 @@ def determine_intersections(section1: Section):
 
 # Put into one big array
 
-def set_sections_config_values(redis: Redis, section_width: int, section_height: int, nr_rows: int, nr_cols: int, bits_per_color: int, colors: Iterable[Color]):
+def set_sections_config_values(redis: Redis, section_width: int, section_height: int, nr_rows: int, nr_cols: int, bits_per_color: int, color_provider: ColorProvider):
     redis.set(RedisKeys.TOTAL_NR_PIXELS, section_width * section_height * nr_rows * nr_cols)
     redis.set(RedisKeys.BITS_PER_COLOR, bits_per_color)
     redis.set(RedisKeys.NR_SEC_COLS, nr_cols)
     redis.set(RedisKeys.NR_SEC_ROWS, nr_rows)
     redis.set(RedisKeys.SEC_WIDTH, section_width)
     redis.set(RedisKeys.SEC_HEIGHT, section_height)
-    redis.sadd(RedisKeys.COLOR_SET, *[color.value24bit for color in colors])
+    redis.sadd(RedisKeys.COLOR_SET, *color_provider.colors_to_bytes())
 
 def add_section(redis: Redis, sections: list[Section], bits_per_color: int, top_left: Point2D, bot_right: Point2D):
     section = Section(top_left, bot_right, len(sections)) #{'topLeft': top_left, 'botRight': bot_right, 'id': len(sections)}
@@ -64,11 +64,11 @@ def add_section(redis: Redis, sections: list[Section], bits_per_color: int, top_
     redis.setbit(RedisKeys.sec_pixel_data(id), width * height * bits_per_color - 1, 0)
     return sections
 
-def init_from_clear_db(redis: Redis, sec_width: int, sec_height: int, start_top_left: int, nr_cols: int, nr_rows: int, bits_per_color: int, colors: Iterable[Color]):
+def init_from_clear_db(redis: Redis, sec_width: int, sec_height: int, start_top_left: int, nr_cols: int, nr_rows: int, bits_per_color: int, color_provider: ColorProvider):
     sections = split_bits(sec_width, sec_height, start_top_left, nr_cols, nr_rows)
     logging.info('Flushing db and initializing from scratch.')
     redis.flushdb()
-    set_sections_config_values(redis, sec_width, sec_height, nr_rows, nr_cols, bits_per_color, colors)
+    set_sections_config_values(redis, sec_width, sec_height, nr_rows, nr_cols, bits_per_color, color_provider)
     # TODO: use pipelining or scripting
     for section in sections:
         id = section.id
@@ -107,11 +107,12 @@ def on_starting(server: Arbiter):
     SEC_HEIGHT = 1000
     START_TOP_LEFT = (0, 0)
     COLORS = [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)]
+    color_provider = ColorProvider(BITS_PER_COLOR, COLORS)
 
     redis = Redis(host='redis', port=6379)
     cur_total_nr_pixels = redis.get(RedisKeys.TOTAL_NR_PIXELS)
     if cur_total_nr_pixels is None:
-        init_from_clear_db(redis, SEC_WIDTH, SEC_HEIGHT, START_TOP_LEFT, NR_COLS, NR_ROWS, BITS_PER_COLOR, COLORS)
+        init_from_clear_db(redis, SEC_WIDTH, SEC_HEIGHT, START_TOP_LEFT, NR_COLS, NR_ROWS, BITS_PER_COLOR, color_provider)
     else:  # Assume that all values are set, but they might differ from the specified ones
         cur_bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
         cur_nr_cols = int(redis.get(RedisKeys.NR_SEC_COLS))

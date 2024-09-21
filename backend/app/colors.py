@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 import heapq
-
+import logging
+import struct
 
 class Color:
     value24bit: int
@@ -29,7 +30,7 @@ class Color:
     
     def rgb(self):
         return tuple([self.r, self.g, self.b])
-    
+
     def __hash__(self):
         return hash(self.value24bit)
     
@@ -43,6 +44,7 @@ class Color:
 
 
 class ColorProvider:
+    _color_s = struct.Struct('II')
     _id_to_color: dict[int, Color]
     _color_to_id: dict[Color, int]
     _id_heap: list[int] # TODO: the current implementation does not allow the heap to shrink, even when all colors except (for instance) the first two have been removed
@@ -70,11 +72,29 @@ class ColorProvider:
         id = len(self._id_to_color) # Assume continuous indexing
         if len(self._id_heap) != 0: # There's an earlier unused index
             id = heapq.heappop(self._id_heap)
+        self.add_color_with_id(color, id)
+    
+    def add_color_with_id(self, color: Color, id: int):
         self._id_to_color[id] = color
         self._color_to_id[color] = id
-    
+
     def get_id_colors(self):
         return self._id_to_color
     
     def size(self):
         return len(self._color_to_id)
+    
+    def colors_to_bytes(self):
+        return [self._color_to_bytes(color, id) for id, color in self._id_to_color.items()]
+    
+    def _color_to_bytes(self, color: Color, id: int):
+        return self._color_s.pack(color.value24bit, id)
+    
+    def _color_from_bytes(self, color_bytes):
+        [value_24bit, id] = self._color_s.unpack(color_bytes)
+        return Color.from_24bit(value_24bit), id
+    
+    def add_colors_from_bytes(self, colors_bytes: Iterable[bytes]):
+        for color_bytes in colors_bytes:
+            color, id = self._color_from_bytes(color_bytes)
+            self.add_color_with_id(color, id)

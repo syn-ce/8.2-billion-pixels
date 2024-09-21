@@ -10,9 +10,6 @@ from sections import Section
 from colors import Color, ColorProvider
 from RedisKeys import RedisKeys
 
-def load_colors(redis: Redis):
-    return {Color.from_24bit(int(col_val)) for col_val in redis.smembers(RedisKeys.COLOR_SET)}
-
 def load_sections(redis: Redis):
     sec_ids = [int(sec_id) for sec_id in redis.smembers(RedisKeys.SEC_IDS)]
     return [Section.from_bytes(redis.get(RedisKeys.sec_info(sec_id))) for sec_id in sec_ids]
@@ -27,15 +24,14 @@ def create_app():
 
     bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
 
-    colors = load_colors(redis)
-    logging.info(f'Loaded colors from redis: {colors}')
-    color_provider = ColorProvider(bits_per_color, [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)])
+    color_provider = ColorProvider(bits_per_color, [])
+    colorset = redis.smembers(RedisKeys.COLOR_SET)
+    color_provider.add_colors_from_bytes(colorset)
     colors_json = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
 
     #sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
     sections = load_sections(redis)
     sections_json = [section.to_json() for section in sections]
-    print(len(sections))
 
     def handle_pubsub_set_pixel(message):
         try:
