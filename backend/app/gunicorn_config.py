@@ -6,6 +6,7 @@ from redis import Redis
 from gunicorn.arbiter import Arbiter
 import logging
 
+from RedisKeys import RedisKeys
 from colors import Color
 from sections import Point2D, Section, split_bits
 
@@ -46,21 +47,21 @@ def determine_intersections(section1: Section):
 # Put into one big array
 
 def set_sections_config_values(redis: Redis, section_width: int, section_height: int, nr_rows: int, nr_cols: int, bits_per_color: int, colors: Iterable[Color]):
-    redis.set('sections_total_nr_pixels', section_width * section_height * nr_rows * nr_cols)
-    redis.set('sections_bits_per_color', bits_per_color)
-    redis.set('sections_nr_cols', nr_cols)
-    redis.set('sections_nr_rows', nr_rows)
-    redis.set('sections_sec_width', section_width)
-    redis.set('sections_sec_height', section_height)
-    redis.sadd('color_set', *[color.value24bit for color in colors])
+    redis.set(RedisKeys.TOTAL_NR_PIXELS, section_width * section_height * nr_rows * nr_cols)
+    redis.set(RedisKeys.BITS_PER_COLOR, bits_per_color)
+    redis.set(RedisKeys.NR_SEC_COLS, nr_cols)
+    redis.set(RedisKeys.NR_SEC_ROWS, nr_rows)
+    redis.set(RedisKeys.SEC_WIDTH, section_width)
+    redis.set(RedisKeys.SEC_HEIGHT, section_height)
+    redis.sadd(RedisKeys.COLOR_SET, *[color.value24bit for color in colors])
 
 def add_section(redis: Redis, sections: list[Section], bits_per_color: int, top_left: Point2D, bot_right: Point2D):
     section = Section(top_left, bot_right, len(sections)) #{'topLeft': top_left, 'botRight': bot_right, 'id': len(sections)}
     width = bot_right[0] - top_left[0]
     height = bot_right[1] - top_left[1]
     sections.append(section)
-    redis.set(f'sec_{section.id}', section.to_bytes())
-    redis.setbit(sections[-1].id, width * height * bits_per_color - 1, 0)
+    redis.set(RedisKeys.sec_info(section.id), section.to_bytes())
+    redis.setbit(RedisKeys.sec_pixel_data(id), width * height * bits_per_color - 1, 0)
     return sections
 
 def init_from_clear_db(redis: Redis, sec_width: int, sec_height: int, start_top_left: int, nr_cols: int, nr_rows: int, bits_per_color: int, colors: Iterable[Color]):
@@ -71,10 +72,10 @@ def init_from_clear_db(redis: Redis, sec_width: int, sec_height: int, start_top_
     # TODO: use pipelining or scripting
     for section in sections:
         id = section.id
-        redis.sadd('sec_ids', id)
-        redis.set(f'sec_{id}', section.to_bytes())
+        redis.sadd(RedisKeys.SEC_IDS, id)
+        redis.set(RedisKeys.sec_info(id), section.to_bytes())
         nr_bits = sec_width * sec_height * bits_per_color
-        redis.setbit(id, nr_bits - 1, 0)
+        redis.setbit(RedisKeys.sec_pixel_data(id), nr_bits - 1, 0)
     return
     
 
@@ -94,7 +95,6 @@ def setup_redis(redis: Redis, init_new: bool, old_bits_per_color: int, bits_per_
     #set_sections_config_values(redis, section_width, section_height, nr_rows, nr_cols, bits_per_color)
 
 
-
 # TODO: this is not safe to use with multiple instances of the flask docker container
 def on_starting(server: Arbiter):
     setup_logging()
@@ -109,15 +109,15 @@ def on_starting(server: Arbiter):
     COLORS = [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)]
 
     redis = Redis(host='redis', port=6379)
-    cur_total_nr_pixels = redis.get('sections_total_nr_pixels')
+    cur_total_nr_pixels = redis.get(RedisKeys.TOTAL_NR_PIXELS)
     if cur_total_nr_pixels is None:
         init_from_clear_db(redis, SEC_WIDTH, SEC_HEIGHT, START_TOP_LEFT, NR_COLS, NR_ROWS, BITS_PER_COLOR, COLORS)
     else:  # Assume that all values are set, but they might differ from the specified ones
-        cur_bits_per_color = int(redis.get('sections_bits_per_color'))
-        cur_nr_cols = int(redis.get('sections_nr_cols'))
-        cur_nr_rows = int(redis.get('sections_nr_rows'))
-        cur_sec_width = int(redis.get('sections_sec_width'))
-        cur_sec_height = int(redis.get('sections_sec_height'))
+        cur_bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
+        cur_nr_cols = int(redis.get(RedisKeys.NR_SEC_COLS))
+        cur_nr_rows = int(redis.get(RedisKeys.NR_SEC_ROWS))
+        cur_sec_width = int(redis.get(RedisKeys.SEC_WIDTH))
+        cur_sec_height = int(redis.get(RedisKeys.SEC_HEIGHT))
         if cur_bits_per_color == BITS_PER_COLOR and cur_nr_cols == NR_COLS and cur_nr_rows == NR_ROWS and cur_sec_width == SEC_WIDTH and cur_sec_height == SEC_HEIGHT:
             logging.info('Not modifying existing db on load.')
             return

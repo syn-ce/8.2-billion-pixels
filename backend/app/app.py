@@ -8,13 +8,14 @@ import logging
 
 from sections import Section
 from colors import Color, ColorProvider
+from RedisKeys import RedisKeys
 
 def load_colors(redis: Redis):
-    return {Color.from_24bit(int(col_val)) for col_val in redis.smembers('color_set')}
+    return {Color.from_24bit(int(col_val)) for col_val in redis.smembers(RedisKeys.COLOR_SET)}
 
 def load_sections(redis: Redis):
-    sec_ids = [int(sec_id) for sec_id in redis.smembers('sec_ids')]
-    return [Section.from_bytes(redis.get(f'sec_{sec_id}')) for sec_id in sec_ids]
+    sec_ids = [int(sec_id) for sec_id in redis.smembers(RedisKeys.SEC_IDS)]
+    return [Section.from_bytes(redis.get(RedisKeys.sec_info(sec_id))) for sec_id in sec_ids]
 
 def create_app():
     app = Flask(__name__)
@@ -24,17 +25,12 @@ def create_app():
     socketio = SocketIO(app, cors_allowed_origins="*")
     redis = Redis(host='redis', port=6379)
 
-    bits_per_color = int(redis.get('sections_bits_per_color'))
+    bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
 
     colors = load_colors(redis)
     logging.info(f'Loaded colors from redis: {colors}')
     color_provider = ColorProvider(bits_per_color, [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)])
     colors_json = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
-
-    cur_nr_cols = int(redis.get('sections_nr_cols'))
-    cur_nr_rows = int(redis.get('sections_nr_rows'))
-    cur_sec_width = int(redis.get('sections_sec_width'))
-    cur_sec_height = int(redis.get('sections_sec_height'))
 
     #sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
     sections = load_sections(redis)
@@ -68,7 +64,7 @@ def create_app():
     @app.route('/section-data/<id>')
     def get_section_data(id):
         logging.info(f'Request for section {id}')
-        return redis.get(id)
+        return redis.get(RedisKeys.sec_pixel_data(id))
 
     @socketio.on('connect')
     def handle_connect():
