@@ -95,6 +95,7 @@ def setup_redis(redis: Redis, init_new: bool, old_bits_per_color: int, bits_per_
 
 
 
+# TODO: this is not safe to use with multiple instances of the flask docker container
 def on_starting(server: Arbiter):
     setup_logging()
 
@@ -108,19 +109,20 @@ def on_starting(server: Arbiter):
     COLORS = [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)]
 
     redis = Redis(host='redis', port=6379)
-    cur_total_nr_bits = redis.get('sections_total_nr_pixels')
-    cur_total_nr_bits = None
-    if cur_total_nr_bits is None:
+    cur_total_nr_pixels = redis.get('sections_total_nr_pixels')
+    if cur_total_nr_pixels is None:
         init_from_clear_db(redis, SEC_WIDTH, SEC_HEIGHT, START_TOP_LEFT, NR_COLS, NR_ROWS, BITS_PER_COLOR, COLORS)
     else:  # Assume that all values are set, but they might differ from the specified ones
-        cur_total_nr_bits = int(cur_total_nr_bits)
         cur_bits_per_color = int(redis.get('sections_bits_per_color'))
         cur_nr_cols = int(redis.get('sections_nr_cols'))
         cur_nr_rows = int(redis.get('sections_nr_rows'))
         cur_sec_width = int(redis.get('sections_sec_width'))
         cur_sec_height = int(redis.get('sections_sec_height'))
-        if cur_bits_per_color != BITS_PER_COLOR or cur_nr_cols != NR_COLS or cur_nr_rows != NR_ROWS:
-            setup_redis(redis, True, cur_bits_per_color, BITS_PER_COLOR, NR_COLS, NR_ROWS, 
+        if cur_bits_per_color == BITS_PER_COLOR and cur_nr_cols == NR_COLS and cur_nr_rows == NR_ROWS and cur_sec_width == SEC_WIDTH and cur_sec_height == SEC_HEIGHT:
+            logging.info('Not modifying existing db on load.')
+            return
+        
+        setup_redis(redis, True, cur_bits_per_color, BITS_PER_COLOR, NR_COLS, NR_ROWS, 
                         SEC_WIDTH, SEC_HEIGHT, cur_sec_width, cur_sec_height, START_TOP_LEFT, COLORS)
 
     # color_provider = ColorProvider(bits_per_color, [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)])
