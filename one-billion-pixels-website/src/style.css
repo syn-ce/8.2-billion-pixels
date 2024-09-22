@@ -50,27 +50,38 @@ body {
 
 #initiate-place-pixel {
     position: absolute;
-    width: 150px;
+    width: 200px;
+    height: fit-content;
+    padding: 5px;
     bottom: 7%;
     background-color: orangered;
 }
 
 /* TODO: Maybe make this respect screenFrame */
 #place-pixel-wrapper {
+    transition-duration: 100ms;
     display: flex;
     flex-direction: column;
     position: absolute;
     bottom: 0%;
     transform: translate(0px, 100%);
-    background-color: #535bf2;
+    background-color: rgb(222, 222, 222);
     width: 100%;
     min-height: 10%;
     justify-content: center;
     align-items: center;
 }
 
+#place-pixel-text {
+    margin: 0px;
+}
+#place-pixel-coords-text {
+    margin: 0px;
+    font-size: 0.7em;
+}
+
 #place-pixel-wrapper #abort-confirm-wrapper {
-    background-color: #9fbb3b;
+    /*background-color: #9fbb3b;*/
     margin-bottom: 15px;
     display: grid;
     grid-auto-flow: column;
@@ -82,14 +93,14 @@ body {
     width: fit-content;
     max-width: 80%;
     height: fit-content;
-    background-color: teal;
+    /*background-color: teal;*/
     display: flex;
     justify-content: center;
     flex-wrap: wrap-reverse;
 }
 
 .color-choice {
-    border: 1px solid transparent;
+    border: 2px solid black;
 }
 
 .color-choice:hover {
@@ -97,7 +108,7 @@ body {
 }
 
 .color-choice.active {
-    border: 1px solid red;
+    border: 2px solid orangered;
 }
 
 #set-pixel-btn {

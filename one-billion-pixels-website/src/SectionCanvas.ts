@@ -38,6 +38,7 @@ export class SectionCanvas {
     canvRetWrapper: HTMLDivElement
     colorProvider: ColorProvider
     curAnimationTimeoutId: number
+    canvasUpdateCallbacks: ((sectionCanvas: SectionCanvas) => void)[]
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -88,6 +89,7 @@ export class SectionCanvas {
         this.screenFrame = screenFrame
         this.panZoomWrapper = panZoomWrapper
         this.curAnimationTimeoutId = -1
+        this.canvasUpdateCallbacks = []
 
         const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
         const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
@@ -384,11 +386,21 @@ export class SectionCanvas {
         this.offset[1] += diff[1]
     }
 
+    // TODO: add way to remove these (return unique ids)
+    addUpdateCallback = (callback: (sectionCanvas: SectionCanvas) => void) => {
+        this.canvasUpdateCallbacks.push(callback)
+    }
+
+    _callUpdateCallbacks = () => {
+        for (const callback of this.canvasUpdateCallbacks) callback(this)
+    }
+
     setCanvasTransform = () => {
         this.checkBuffers()
         this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.scale})`
         this.reticle.update(this)
         this.zoomSlider.value = this.scale * this.maxZoom
+        this._callUpdateCallbacks()
     }
 
     checkBuffers = () => {

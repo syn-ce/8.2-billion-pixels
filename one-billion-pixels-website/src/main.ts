@@ -78,6 +78,9 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
 const initPlacePixelBtn = <HTMLButtonElement>(
     document.getElementById('initiate-place-pixel')
 )
+const initPlacePixelCoordsEl = <HTMLParagraphElement>(
+    document.getElementById('place-pixel-coords-text')
+)
 const placePixelWrapper = <HTMLDivElement>(
     document.getElementById('place-pixel-wrapper')
 )
@@ -105,6 +108,17 @@ confirmPlacePixelBtn.onclick = async () => {
     )
     hidePlacePixelWrapper()
 }
+
+// Update displayed coords in place pixel button
+sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
+    const canvasPixel = sectionCanvas.reticle.curCanvasPixel
+    const sectionPixel = sectionCanvas.canvasToSectionCoords(canvasPixel)
+    const zoomLevel =
+        Math.round(
+            Number.parseFloat(sectionCanvas.zoomSlider.zoomSlider.value) * 100
+        ) / 100
+    initPlacePixelCoordsEl.innerText = `(${sectionPixel}) ${zoomLevel}x`
+})
 
 sectionCanvas.setCanvasTransform()
 sectionCanvas.drawSections()
