@@ -27,6 +27,13 @@ body {
     overflow: hidden;
 }
 
+.prevent-transition-before-pageload * {
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -ms-transition: none !important;
+    -o-transition: none !important;
+}
+
 #canvas-reticle-wrapper {
     display: grid;
 }

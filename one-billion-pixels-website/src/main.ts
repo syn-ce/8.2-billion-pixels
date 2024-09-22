@@ -7,6 +7,11 @@ import { setupSocket } from './socket'
 import './style.css'
 import { ZoomSlider } from './ZoomSlider'
 
+// Allow transitions after pageload
+window.onload = () => {
+    document.body.classList.remove('prevent-transition-before-pageload')
+}
+
 const socket = setupSocket()
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
