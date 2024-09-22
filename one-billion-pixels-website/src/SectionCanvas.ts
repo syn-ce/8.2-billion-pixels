@@ -471,15 +471,15 @@ export class SectionCanvas {
     }
 
     canvasToScreenCoords = (
-        canvasPixel: [number, number]
+        canvasCoords: [number, number]
     ): [number, number] => {
         const canvBoundRect = this.canvas.getBoundingClientRect()
 
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
 
         const screenCoords: [number, number] = [
-            canvasPixel[0] * screenPixelsPerCanvasPixel + canvBoundRect.left,
-            canvasPixel[1] * screenPixelsPerCanvasPixel + canvBoundRect.top,
+            canvasCoords[0] * screenPixelsPerCanvasPixel + canvBoundRect.left,
+            canvasCoords[1] * screenPixelsPerCanvasPixel + canvBoundRect.top,
         ]
 
         return screenCoords
