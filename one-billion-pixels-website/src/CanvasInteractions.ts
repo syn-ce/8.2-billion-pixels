@@ -8,7 +8,7 @@ export const addAllInteractivityToSectionCanvas = (
 }
 
 export const addPanZoomToSectionCanvas = (sectionCanvas: SectionCanvas) => {
-    addMouseWheelPanToCanvas(sectionCanvas)
+    addMousePanToCanvas(sectionCanvas)
     addMouseWheelZoomToCanvas(sectionCanvas)
     addTouchPanZoomToCanvas(sectionCanvas)
 }
@@ -24,7 +24,7 @@ const copyTouch = ({
 }) => ({ id: identifier, x: clientX, y: clientY })
 
 // TODO: clicking for centering does not really work on mobile, haven't yet figured out why though
-const addMouseWheelPanToCanvas = (sectionCanvas: SectionCanvas) => {
+const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onmousedown = (evt) => {
         sectionCanvas.panning = true
