@@ -176,7 +176,10 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
             )
             const zoomFactor = (sign * zoomDeltaLen + a) / a
 
-            sectionCanvas.zoomInto([center.x, center.y], zoomFactor)
+            sectionCanvas.zoomScreenCoordsCheckScale(
+                [center.x, center.y],
+                zoomFactor
+            )
             sectionCanvas.prevZoomTouch = [touch1, touch2]
         }
     }
@@ -187,7 +190,7 @@ const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     canvas.onwheel = (evt) => {
         sectionCanvas.stopAnimation()
         let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
-        sectionCanvas.zoomInto([evt.x, evt.y], zoomFactor)
+        sectionCanvas.zoomScreenCoordsCheckScale([evt.x, evt.y], zoomFactor)
     }
 }
 

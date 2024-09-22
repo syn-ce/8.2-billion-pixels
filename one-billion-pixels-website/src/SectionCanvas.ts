@@ -23,9 +23,9 @@ export class SectionCanvas {
     startPanMousePos: [number, number]
     maxZoom: number
     minZoom: number
-    scale: number
-    maxScale: number
-    minScale: number
+    normScale: number
+    maxNormScale: number
+    minNormScale: number
     offset: [number, number]
     contentOffset: [number, number]
     reticle: Reticle
@@ -72,13 +72,13 @@ export class SectionCanvas {
         // Using devicePixelRatio will work, but will lead to some numerical inaccuracies when displaying the zoom (49.99 instead of 50)
         // TODO: investigate this
         this.minZoom = 1 / 2 // devicePixelRatio
-        this.scale = scale / 2 // devicePixelRatio
-        this.maxScale = 1
-        this.minScale = 1 / (this.maxZoom * 2) //devicePixelRatio)
+        this.normScale = scale / 2 // devicePixelRatio
+        this.maxNormScale = 1 // This is always assumed to be one, i.e. therefore quite redundant at the moment
+        this.minNormScale = 1 / (this.maxZoom * 2) //devicePixelRatio)
         this.zoomSlider = zoomSlider
         this.zoomSlider.min = this.minZoom
         this.zoomSlider.max = this.maxZoom
-        this.zoomSlider.value = this.scale * this.maxZoom
+        this.zoomSlider.value = this.normScale * this.maxZoom
         this.zoomSlider.step = 0.01
         this.colorProvider = colorProvider
 
@@ -113,8 +113,8 @@ export class SectionCanvas {
                 screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
                 screenFrameBoundRect.top + screenFrameBoundRect.height / 2,
             ]
-            const factor = zoomValue / (this.scale * this.maxZoom)
-            this.zoomInto(screenCenter, factor)
+            const factor = zoomValue / (this.normScale * this.maxZoom)
+            this.zoomScreenCoordsCheckScale(screenCenter, factor)
         })
 
         socket.on(
@@ -399,9 +399,9 @@ export class SectionCanvas {
 
     setCanvasTransform = () => {
         this.checkBuffers()
-        this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.scale})`
+        this.panZoomWrapper.style.transform = `translate(${this.offset[0]}px, ${this.offset[1]}px) scale(${this.normScale})`
         this.reticle.update(this)
-        this.zoomSlider.value = this.scale * this.maxZoom
+        this.zoomSlider.value = this.normScale * this.maxZoom
         this._callUpdateCallbacks()
     }
 
@@ -485,37 +485,97 @@ export class SectionCanvas {
         return screenCoords
     }
 
-    zoomInto = (screenCoords: [number, number], factor: number) => {
-        if (this.scale * factor > this.maxScale)
-            factor = this.maxScale / this.scale
-        else if (this.scale * factor < this.minScale)
-            factor = this.minScale / this.scale
-        const canvBoundRect = this.canvas.getBoundingClientRect()
+    zoomScreenCoordsApplyEasing = (
+        screenCoords: [number, number],
+        factor: number,
+        durationMs: number,
+        steps: number
+    ) => {
+        // Clear previous animation (if still active, otherwise this does nothing)
+        // TODO: this assumes that all timeouts are completed before the next one is scheduled, which is actually a decently irresponsible assumption to make
+        this.stopAnimation()
 
+        // Factor to apply at every step
+        const stepFactor = Math.pow(factor, 1 / steps)
+        const delay = durationMs / steps
+
+        const _zoomScreenCoordsEasingRec = (step: number) => {
+            if (step > steps) return
+
+            this.zoomScreenCoords(screenCoords, stepFactor)
+
+            this.curAnimationTimeoutId = setTimeout(
+                () => _zoomScreenCoordsEasingRec(step + 1),
+                delay
+            )
+        }
+
+        _zoomScreenCoordsEasingRec(1) // Step from 1 to steps
+    }
+
+    zoomScreenCoords = (screenCoords: [number, number], factor: number) => {
+        const canvBoundRect = this.canvas.getBoundingClientRect()
         // Pixels from zoomPoint to canvas center
         const diffToCenter = [
             canvBoundRect.left + canvBoundRect.width / 2 - screenCoords[0],
             canvBoundRect.top + canvBoundRect.height / 2 - screenCoords[1],
         ]
 
-        // Difference in pixels from zoomPoint to canvas center after zoom (compared to before)
         const translation: [number, number] = [
             diffToCenter[0] * (factor - 1),
             diffToCenter[1] * (factor - 1),
         ]
 
-        translation[0] = translation[0]
-        translation[1] = translation[1]
-
-        this.scale *= factor
+        this.normScale *= factor
         this.setCanvasTransform() // TODO: Clean this up. Because we are using clientBoundingRects
         // in the applyOffsetDiff function, they have to be up to date -> the scale has to be set.
         this.applyOffsetDiffCheckBounds(translation)
         this.setCanvasTransform()
     }
 
+    zoomLevelScreenCoordsCheckScaleApplyEasing = (
+        screenCoords: [number, number],
+        scale: number,
+        durationMs: number,
+        steps: number
+    ) => {
+        const factor = scale / (this.maxZoom * this.normScale)
+        this.zoomScreenCoordsCheckScaleApplyEasing(
+            screenCoords,
+            factor,
+            durationMs,
+            steps
+        )
+    }
+
+    zoomScreenCoordsCheckScaleApplyEasing = (
+        screenCoords: [number, number],
+        factor: number,
+        durationMs: number,
+        steps: number
+    ) => {
+        if (this.normScale * factor > this.maxNormScale)
+            factor = this.maxNormScale / this.normScale
+        else if (this.normScale * factor < this.minNormScale)
+            factor = this.minNormScale / this.normScale
+
+        this.zoomScreenCoordsApplyEasing(
+            screenCoords,
+            factor,
+            durationMs,
+            steps
+        )
+    }
+
+    zoomScreenCoordsCheckScale = (
+        screenCoords: [number, number],
+        factor: number
+    ) => {
+        this.zoomScreenCoordsCheckScaleApplyEasing(screenCoords, factor, 0, 1)
+    }
+
     get screenPixelsPerCanvasPixel() {
-        return this.scale * this.maxZoom
+        return this.normScale * this.maxZoom
     }
 
     centerCanvasPixelCheckBounds = (canvasPixel: [number, number]) => {
@@ -642,5 +702,13 @@ export class SectionCanvas {
         this.offset[0] += diffToScreenCenter[0]
         this.offset[1] += diffToScreenCenter[1]
         this.setCanvasTransform()
+    }
+
+    get screenFrameCenterCoords(): [number, number] {
+        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+        return [
+            screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
+            screenFrameBoundRect.top + screenFrameBoundRect.height / 2,
+        ]
     }
 }

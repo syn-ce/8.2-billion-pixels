@@ -102,7 +102,15 @@ const showPlacePixelWrapper = () =>
 const hidePlacePixelWrapper = () =>
     (placePixelWrapper.style.transform = 'translate(0px, 100%)')
 
-initPlacePixelBtn.onclick = () => showPlacePixelWrapper()
+initPlacePixelBtn.onclick = () => {
+    showPlacePixelWrapper()
+    sectionCanvas.zoomLevelScreenCoordsCheckScaleApplyEasing(
+        sectionCanvas.screenFrameCenterCoords,
+        40,
+        300,
+        18 // 60 FPS // TODO: Maybe adjust this (and other updates / animations) to screen refresh rate
+    )
+}
 
 abortPlacePixelBtn.onclick = () => hidePlacePixelWrapper()
 
