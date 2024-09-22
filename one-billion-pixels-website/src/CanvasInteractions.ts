@@ -27,6 +27,7 @@ const copyTouch = ({
 const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onmousedown = (evt) => {
+        sectionCanvas.stopAnimation()
         sectionCanvas.panning = true
         sectionCanvas.prevPanMousePos = [evt.x, evt.y]
         sectionCanvas.startPanMousePos = [evt.x, evt.y]
@@ -65,7 +66,7 @@ const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
         sectionCanvas.centerCanvasPixelCheckBoundsApplyEasing(
             canvasPixel,
             100,
-            5
+            6
         )
     }
 
@@ -184,6 +185,7 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
 const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onwheel = (evt) => {
+        sectionCanvas.stopAnimation()
         let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
         sectionCanvas.zoomInto([evt.x, evt.y], zoomFactor)
     }
