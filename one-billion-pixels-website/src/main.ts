@@ -75,12 +75,35 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     colorPicker
 )
 
-const setPixelBtn = <HTMLButtonElement>document.getElementById('set-pixel-btn')
-setPixelBtn.onclick = async () => {
+const initPlacePixelBtn = <HTMLButtonElement>(
+    document.getElementById('initiate-place-pixel')
+)
+const placePixelWrapper = <HTMLDivElement>(
+    document.getElementById('place-pixel-wrapper')
+)
+const abortPlacePixelBtn = <HTMLButtonElement>(
+    document.getElementById('abort-place-pixel')
+)
+const confirmPlacePixelBtn = <HTMLButtonElement>(
+    document.getElementById('confirm-place-pixel')
+)
+
+const showPlacePixelWrapper = () =>
+    (placePixelWrapper.style.transform = 'translate(0)')
+
+const hidePlacePixelWrapper = () =>
+    (placePixelWrapper.style.transform = 'translate(0px, 100%)')
+
+initPlacePixelBtn.onclick = () => showPlacePixelWrapper()
+
+abortPlacePixelBtn.onclick = () => hidePlacePixelWrapper()
+
+confirmPlacePixelBtn.onclick = async () => {
     sectionCanvas.userSetPixel(
         sectionCanvas.reticle.curCanvasPixel,
         colorPicker.curColorChoice.id
     )
+    hidePlacePixelWrapper()
 }
 
 sectionCanvas.setCanvasTransform()

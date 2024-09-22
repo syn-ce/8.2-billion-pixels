@@ -16,11 +16,21 @@
             </div>
         </div>
         <div id="screen-frame"></div>
-        <button id="set-pixel-btn">Set Color</button>
-        <div id="color-picker"></div>
+        <button id="initiate-place-pixel">Place Pixel!</button>
         <div id="zoom-slider-wrapper">
             <label for="zoom-slider" id="zoom-slider-label"></label>
             <input type="range" name="zoom-slider" id="zoom-slider" />
+        </div>
+        <div id="place-pixel-wrapper">
+            <div id="color-picker"></div>
+            <div id="abort-confirm-wrapper">
+                <button id="confirm-place-pixel">
+                    <div class="checkmark"></div>
+                </button>
+                <button id="abort-place-pixel">
+                    <div class="cross"></div>
+                </button>
+            </div>
         </div>
         <script type="module" src="/src/main.ts"></script>
     </body>
