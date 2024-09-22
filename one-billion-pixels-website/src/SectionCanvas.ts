@@ -69,10 +69,12 @@ export class SectionCanvas {
             { x: -1, y: -1, id: -1 },
         ] // You guessed it
         this.maxZoom = maxZoom
-        this.minZoom = 1 / devicePixelRatio
-        this.scale = scale / devicePixelRatio
+        // Using devicePixelRatio will work, but will lead to some numerical inaccuracies when displaying the zoom (49.99 instead of 50)
+        // TODO: investigate this
+        this.minZoom = 1 / 2 // devicePixelRatio
+        this.scale = scale / 2 // devicePixelRatio
         this.maxScale = 1
-        this.minScale = 1 / (this.maxZoom * devicePixelRatio)
+        this.minScale = 1 / (this.maxZoom * 2) //devicePixelRatio)
         this.zoomSlider = zoomSlider
         this.zoomSlider.min = this.minZoom
         this.zoomSlider.max = this.maxZoom
