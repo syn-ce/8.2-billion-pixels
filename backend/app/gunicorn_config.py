@@ -10,7 +10,7 @@ from RedisKeys import RedisKeys
 from colors import Color, ColorProvider
 from sections import Point2D, Section, split_bits
 
-workers = int(os.environ.get('GUNICORN_PROCESSES', '4'))
+workers = int(os.environ.get('GUNICORN_PROCESSES', '1'))
 
 threads = int(os.environ.get('GUNICORN_THREADS', '4'))
 
