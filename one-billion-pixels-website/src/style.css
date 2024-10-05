@@ -19,11 +19,6 @@
 
 body {
     margin: 0;
-    display: flex;
-    justify-content: center;
-    width: 100vw;
-    height: 100vh;
-    align-items: center;
     overflow: hidden;
 }
 
@@ -34,12 +29,15 @@ body {
     -o-transition: none !important;
 }
 
+#canvas-default-offset-wrapper {
+    width: fit-content;
+}
+
 #canvas-reticle-wrapper {
     display: grid;
 }
 
 #clicker-canvas {
-    margin: auto;
     display: block; /* To prevent zoom-pan wrapper div from having excess height (bc of lineheight of canvas being added when (default) display: inline) */
     image-rendering: pixelated;
     grid-column: 1;
@@ -48,8 +46,10 @@ body {
 
 #screen-frame {
     position: absolute;
-    width: 100vw;
-    height: 100vh;
+    top: 120px;
+    left: 80px;
+    width: 500px;
+    height: 500px;
     margin: auto;
     outline: 5px solid black;
     pointer-events: none;
@@ -129,15 +129,42 @@ body {
     width: fit-content;
     grid-column: 1;
     grid-row: 1;
+    width: 1px;
+    height: 1px;
 }
 
 #reticle {
     width: 20px;
+    background-color: green;
     height: 20px;
     transform-origin: top left;
     scale: 0.05;
-    outline: 2px solid red;
-    outline-offset: -1px;
+}
+
+#crosshair {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background-color: #535bf2;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 50%;
+}
+
+#crosshair-horizontal-bar {
+    position: relative;
+    width: 100%;
+    height: 1px;
+    background-color: rebeccapurple;
+}
+
+#crosshair-vertical-bar {
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background-color: rebeccapurple;
 }
 
 #zoom-slider-wrapper {

@@ -15,6 +15,8 @@ window.onload = () => {
 const socket = setupSocket()
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
+console.log(canvas.getBoundingClientRect())
+
 //console.log(screen.width)
 //canvas.width = window.innerWidth //* devicePixelRatio
 //canvas.height = window.innerHeight //* devicePixelRatio
@@ -35,8 +37,10 @@ const colorPicker = new ColorPicker(
     <HTMLDivElement>document.getElementById('color-picker')
 )
 
-const sectionConfig: { sections: SectionAttributes[]; bitsPerPixel: number } =
-    await fetchSectionsConfig()
+const sectionConfig: {
+    sections: SectionAttributes[]
+    bitsPerPixel: number
+} = await fetchSectionsConfig()
 
 const sections = sectionConfig.sections.map(
     (sectionAttrs) =>
@@ -64,6 +68,10 @@ const canvRetWrapper = <HTMLDivElement>(
     document.getElementById('canvas-reticle-wrapper')
 )
 
+const canvasDefaultOffsetWrapper = <HTMLDivElement>(
+    document.getElementById('canvas-default-offset-wrapper')
+)
+
 // Start with canvas centered in middle of screen
 const sectionCanvas: SectionCanvas = new SectionCanvas(
     canvas,
@@ -77,7 +85,8 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     50,
     zoomSlider,
     canvRetWrapper,
-    colorPicker
+    colorPicker,
+    canvasDefaultOffsetWrapper
 )
 
 const initPlacePixelBtn = <HTMLButtonElement>(
@@ -104,11 +113,15 @@ const hidePlacePixelWrapper = () =>
 
 initPlacePixelBtn.onclick = () => {
     showPlacePixelWrapper()
-    sectionCanvas.zoomLevelScreenCoordsCheckScaleApplyEasing(
+    //sectionCanvas.zoomLevelScreenCoordsCheckScaleApplyEasing(
+    //    sectionCanvas.screenFrameCenterCoords,
+    //    40,
+    //    300,
+    //    18 // 60 FPS // TODO: Maybe adjust this (and other updates / animations) to screen refresh rate
+    //)
+    sectionCanvas.zoomScreenCoords(
         sectionCanvas.screenFrameCenterCoords,
-        40,
-        300,
-        18 // 60 FPS // TODO: Maybe adjust this (and other updates / animations) to screen refresh rate
+        0.8 / sectionCanvas.normScale
     )
 }
 
@@ -125,7 +138,9 @@ confirmPlacePixelBtn.onclick = async () => {
 // Update displayed coords in place pixel button
 sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
     const canvasPixel = sectionCanvas.reticle.curCanvasPixel
+
     const sectionPixel = sectionCanvas.canvasToSectionCoords(canvasPixel)
+
     const zoomLevel =
         Math.round(
             Number.parseFloat(sectionCanvas.zoomSlider.zoomSlider.value) * 100
@@ -133,5 +148,8 @@ sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
     initPlacePixelCoordsEl.innerText = `(${sectionPixel}) ${zoomLevel}x`
 })
 
-sectionCanvas.setCanvasTransform()
+console.log(canvas.getBoundingClientRect())
+
+sectionCanvas.updateCanvas()
 sectionCanvas.drawSections()
+//sectionCanvas.centerSectionCoords([130, 230])

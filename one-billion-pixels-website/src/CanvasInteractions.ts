@@ -40,9 +40,10 @@ const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
             evt.y - sectionCanvas.prevPanMousePos[1],
         ]
 
-        sectionCanvas.applyOffsetDiffCheckBounds(diff)
+        //sectionCanvas.applyOffsetDiffCheckBounds(diff)
+        sectionCanvas.applyOffsetDiff(diff)
         sectionCanvas.prevPanMousePos = [evt.x, evt.y]
-        sectionCanvas.setCanvasTransform()
+        sectionCanvas.updateCanvas()
     }
 
     canvas.onmouseup = (evt) => {
@@ -79,6 +80,7 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.ontouchstart = (evt) => {
         sectionCanvas.stopAnimation() // Don't hinder user in starting a new interaction
+
         if (evt.touches.length == 1) {
             // Pan
             const touch = evt.touches[0]
@@ -108,15 +110,18 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     }
 
     canvas.ontouchmove = (evt) => {
+        console.log(`cOffset: ${sectionCanvas.offset}`)
+        console.log(`contentOffset: ${sectionCanvas.contentOffset}`)
         if (evt.touches.length == 1) {
             const touch = evt.touches[0]
             const diff: [number, number] = [
-                touch.clientX - sectionCanvas.prevPanMousePos[0],
-                touch.clientY - sectionCanvas.prevPanMousePos[1],
+                Math.round(touch.clientX - sectionCanvas.prevPanMousePos[0]),
+                Math.round(touch.clientY - sectionCanvas.prevPanMousePos[1]),
             ]
-            sectionCanvas.applyOffsetDiffCheckBounds(diff)
+            //sectionCanvas.applyOffsetDiffCheckBounds(diff)
+            sectionCanvas.applyOffsetDiff(diff)
             sectionCanvas.prevPanMousePos = [touch.clientX, touch.clientY]
-            sectionCanvas.setCanvasTransform()
+            sectionCanvas.updateCanvas()
         } else if (evt.touches.length == 2) {
             const prevTouch1 = sectionCanvas.prevZoomTouch[0]
             const prevTouch2 = sectionCanvas.prevZoomTouch[1]
@@ -136,12 +141,13 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
 
             // Panning by the amount both fingers moved in the same direction
             const sameDirectionMovement: [number, number] = [
-                (movementDelta1[0] + movementDelta2[0]) / 2,
-                (movementDelta1[1] + movementDelta2[1]) / 2,
+                Math.round((movementDelta1[0] + movementDelta2[0]) / 2),
+                Math.round((movementDelta1[1] + movementDelta2[1]) / 2),
             ]
 
-            sectionCanvas.applyOffsetDiffCheckBounds(sameDirectionMovement)
-            sectionCanvas.setCanvasTransform()
+            sectionCanvas.applyOffsetDiff(sameDirectionMovement)
+            //sectionCanvas.applyOffsetDiffCheckBounds(sameDirectionMovement)
+            sectionCanvas.updateCanvas()
 
             // Zooming into the (not changing) center - Tried changing the center throughout the two-finger interaction, but
             // that feels very janky; Leaving the center unchanged feels a lot more intuitive
@@ -176,10 +182,11 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
             )
             const zoomFactor = (sign * zoomDeltaLen + a) / a
 
-            sectionCanvas.zoomScreenCoordsCheckScale(
-                [center.x, center.y],
-                zoomFactor
-            )
+            //sectionCanvas.zoomScreenCoordsCheckScale(
+            //    [center.x, center.y],
+            //    zoomFactor
+            //)
+            sectionCanvas.zoomScreenCoords([center.x, center.y], zoomFactor)
             sectionCanvas.prevZoomTouch = [touch1, touch2]
         }
     }
@@ -189,8 +196,9 @@ const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onwheel = (evt) => {
         sectionCanvas.stopAnimation()
-        let zoomFactor = evt.deltaY < 0 ? 1.2 : 1 / 1.2
-        sectionCanvas.zoomScreenCoordsCheckScale([evt.x, evt.y], zoomFactor)
+        let zoomFactor = evt.deltaY < 0 ? 1.9 : 1 / 1.9
+        sectionCanvas.zoomScreenCoords([evt.x, evt.y], zoomFactor)
+        //sectionCanvas.zoomScreenCoordsCheckScale([evt.x, evt.y], zoomFactor)
     }
 }
 
