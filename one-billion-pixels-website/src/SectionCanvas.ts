@@ -441,34 +441,27 @@ export class SectionCanvas {
 
     updateCanvas = () => {
         this.test++
-        //this.checkBuffers()
+        this.checkOffsetBuffers()
         this.setTransform()
         this.reticle.update(this)
         this.zoomSlider.value = this.normScale * this.maxZoom
         this._callUpdateCallbacks()
     }
 
-    checkBuffers = () => {
-        const canvas = this.canvas
+    checkOffsetBuffers = () => {
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
+        const frameBoundRect = this.screenFrame.getBoundingClientRect()
+
+        const adjustedBufferSize = [
+            this.bufferSize[0] * screenPixelsPerCanvasPixel +
+                ((screenPixelsPerCanvasPixel - 1) * frameBoundRect.width) / 2,
+            this.bufferSize[1] * screenPixelsPerCanvasPixel +
+                ((screenPixelsPerCanvasPixel - 1) * frameBoundRect.height) / 2,
+        ]
 
         if (
-            (screenPixelsPerCanvasPixel * canvas.width) / 2 -
-                this.screenFrame.clientWidth / 2 -
-                this.offset[0] <=
-                0 ||
-            (screenPixelsPerCanvasPixel * canvas.width) / 2 -
-                this.screenFrame.clientWidth / 2 +
-                this.offset[0] <=
-                0 ||
-            (screenPixelsPerCanvasPixel * canvas.height) / 2 -
-                this.screenFrame.clientHeight / 2 -
-                this.offset[1] <=
-                0 ||
-            (screenPixelsPerCanvasPixel * canvas.height) / 2 -
-                this.screenFrame.clientHeight / 2 +
-                this.offset[1] <=
-                0
+            adjustedBufferSize[0] <= Math.abs(this.offset[0]) ||
+            adjustedBufferSize[1] <= Math.abs(this.offset[1])
         ) {
             // Reposition the canvas so that its center is in the center of the screenFrame again.
             // For this, we calculate the contentOffset. Because we only want to offset the content by whole pixels
@@ -483,6 +476,7 @@ export class SectionCanvas {
             this.drawSections()
             // In order for the panning and zooming to be smooth (without "jumps" when the canvas is repositioned),
             // we move it based on the rounded translation for the content offset
+            // (Note that this avoids introducing fractional offsets)
             this.offset[0] -= contentOffsetDiff[0] * screenPixelsPerCanvasPixel
             this.offset[1] -= contentOffsetDiff[1] * screenPixelsPerCanvasPixel
         }
@@ -641,7 +635,7 @@ export class SectionCanvas {
     }
 
     get screenPixelsPerCanvasPixel() {
-        return Math.round(this.normScale * this.maxZoom)
+        return this.normScale * this.maxZoom
     }
 
     centerCanvasPixelCheckBounds = (canvasPixel: [number, number]) => {
