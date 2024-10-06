@@ -626,13 +626,21 @@ export class SectionCanvas {
         this.stopAnimation()
 
         // Factor to apply at every step
+        const goalDesiredScale = this.desiredScale * factor
         const stepFactor = Math.pow(factor, 1 / steps)
         const delay = durationMs / steps
 
         const _zoomScreenCoordsEasingRec = (step: number) => {
             if (step > steps) return
 
-            this.zoomScreenCoords(screenCoords, stepFactor)
+            this.zoomScreenCoords(
+                screenCoords,
+                goalDesiredScale /
+                    stepFactor ** (steps - step) /
+                    this.desiredScale
+                //0.8 / sectionCanvas.desiredScale
+            )
+            this.updateCanvas()
 
             this.curAnimationTimeoutId = setTimeout(
                 () => _zoomScreenCoordsEasingRec(step + 1),
@@ -651,7 +659,6 @@ export class SectionCanvas {
             canvBoundRect.left + canvBoundRect.width / 2 - screenCoords[0],
             canvBoundRect.top + canvBoundRect.height / 2 - screenCoords[1],
         ]
-        console.log(`diffToCenter: ${diffToCenter}`)
 
         this.desiredScale = this.clampScale(this.desiredScale * factor)
         const newScale = this.clampScale(
@@ -660,7 +667,6 @@ export class SectionCanvas {
         const actualFactor = newScale / this.normScale
         this.normScale = newScale
 
-        this.setTransform() // TODO: maybe not necessary?
         const translation: [number, number] = [
             Math.round(diffToCenter[0] * (actualFactor - 1)),
             Math.round(diffToCenter[1] * (actualFactor - 1)),
