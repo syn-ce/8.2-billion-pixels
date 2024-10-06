@@ -39,7 +39,7 @@ export class SectionCanvas {
     zoomSlider: ZoomSlider
     canvRetWrapper: HTMLDivElement
     colorProvider: ColorProvider
-    animationFrameIds: { updateCanvasId: number; panId: number; zoomId: number }
+    animationFrameIds: { panId: number; zoomId: number }
     canvasUpdateCallbacks: ((sectionCanvas: SectionCanvas) => void)[]
     test: number
     bufferSize: [number, number]
@@ -96,7 +96,7 @@ export class SectionCanvas {
         this.socket = socket
         this.frame = screenFrame
         this.panZoomWrapper = panZoomWrapper
-        this.animationFrameIds = { updateCanvasId: -1, panId: -1, zoomId: -1 }
+        this.animationFrameIds = { panId: -1, zoomId: -1 }
         this.canvasUpdateCallbacks = []
 
         const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
@@ -421,6 +421,9 @@ export class SectionCanvas {
         for (const callback of this.canvasUpdateCallbacks) callback(this)
     }
 
+    // TODO: maybe try putting this into reqAnimFrame as well, although this will
+    // probably lead to problems because in constrast to the animations, the timing
+    // of this function when called directly is controlled by the user
     updateCanvas = () => {
         this.test++
         this.setTransform()
@@ -587,7 +590,6 @@ export class SectionCanvas {
     }
 
     stopAnimation = () => {
-        cancelAnimationFrame(this.animationFrameIds.updateCanvasId)
         cancelAnimationFrame(this.animationFrameIds.panId)
         cancelAnimationFrame(this.animationFrameIds.zoomId)
     }
