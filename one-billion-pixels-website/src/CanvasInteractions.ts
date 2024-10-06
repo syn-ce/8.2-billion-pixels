@@ -204,28 +204,28 @@ const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
                 curCanvasPixel[0] - 1,
                 curCanvasPixel[1],
             ]
-            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowUp') {
             const newCanvasPixel: [number, number] = [
                 curCanvasPixel[0],
                 curCanvasPixel[1] - 1,
             ]
-            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowRight') {
             const newCanvasPixel: [number, number] = [
                 curCanvasPixel[0] + 1,
                 curCanvasPixel[1],
             ]
-            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowDown') {
             const newCanvasPixel: [number, number] = [
                 curCanvasPixel[0],
                 curCanvasPixel[1] + 1,
             ]
-            sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         }
     })
