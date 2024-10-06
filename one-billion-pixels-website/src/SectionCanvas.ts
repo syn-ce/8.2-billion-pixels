@@ -761,7 +761,6 @@ export class SectionCanvas {
 
         this.offset[0] += diffToScreenCenter[0]
         this.offset[1] += diffToScreenCenter[1]
-        this.updateCanvas()
     }
 
     get screenFrameCenterCoords(): [number, number] {

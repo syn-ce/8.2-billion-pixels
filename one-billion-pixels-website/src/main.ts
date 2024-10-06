@@ -150,6 +150,5 @@ sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
 
 console.log(canvas.getBoundingClientRect())
 
+sectionCanvas.centerSectionCoords([0, 0])
 sectionCanvas.updateCanvas()
-sectionCanvas.drawSections()
-//sectionCanvas.centerSectionCoords([130, 230])

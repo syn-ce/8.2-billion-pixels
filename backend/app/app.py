@@ -44,7 +44,7 @@ def create_app():
     pubsub = redis.pubsub()
     pubsub.subscribe(**{'set_pixel_channel': handle_pubsub_set_pixel})
     # TODO: this leads to every worker picking this up and the messages getting processed multiple times per flask server instance
-    thread = pubsub.run_in_thread(sleep_time=0.001)
+    thread = pubsub.run_in_thread(sleep_time=0.01)
 
     @cross_origin
     @app.route('/colors')

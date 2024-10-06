@@ -101,8 +101,8 @@ def on_starting(server: Arbiter):
 
     # A billion bits (well, not during development).
     BITS_PER_COLOR = 2
-    NR_COLS = 10
-    NR_ROWS = 10
+    NR_COLS = 5
+    NR_ROWS = 5
     SEC_WIDTH = 1000
     SEC_HEIGHT = 1000
     START_TOP_LEFT = (0, 0)

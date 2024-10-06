@@ -64,11 +64,13 @@ const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.startPanMousePos[1],
         ])
 
-        sectionCanvas.centerCanvasPixelCheckBoundsApplyEasing(
-            canvasPixel,
-            100,
-            6
-        )
+        sectionCanvas.centerCanvasPixel(canvasPixel)
+        sectionCanvas.updateCanvas()
+        //sectionCanvas.centerCanvasPixelCheckBoundsApplyEasing(
+        //    canvasPixel,
+        //    100,
+        //    6
+        //)
     }
 
     canvas.onmouseleave = () => {
@@ -212,24 +214,28 @@ const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
                 curCanvasPixel[1],
             ]
             sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowUp') {
             const newCanvasPixel: [number, number] = [
                 curCanvasPixel[0],
                 curCanvasPixel[1] - 1,
             ]
             sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowRight') {
             const newCanvasPixel: [number, number] = [
                 curCanvasPixel[0] + 1,
                 curCanvasPixel[1],
             ]
             sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowDown') {
             const newCanvasPixel: [number, number] = [
                 curCanvasPixel[0],
                 curCanvasPixel[1] + 1,
             ]
             sectionCanvas.centerCanvasPixelCheckBounds(newCanvasPixel)
+            sectionCanvas.updateCanvas()
         }
     })
 }
