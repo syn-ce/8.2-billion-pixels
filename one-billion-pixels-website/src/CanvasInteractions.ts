@@ -106,8 +106,6 @@ const addTouchPanZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     }
 
     canvas.ontouchmove = (evt) => {
-        console.log(`cOffset: ${sectionCanvas.offset}`)
-        console.log(`contentOffset: ${sectionCanvas.contentOffset}`)
         if (evt.touches.length == 1) {
             const touch = evt.touches[0]
             const diff: [number, number] = [

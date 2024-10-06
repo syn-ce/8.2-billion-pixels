@@ -131,9 +131,6 @@ export class SectionCanvas {
         this.canvasDefaultOffset = [d[0], d[1]]
         this.canvasDefaultOffsetWrapper = canvasDefaultOffsetWrapper
         this.canvasDefaultOffsetWrapper.style.transform = `translate(${this.canvasDefaultOffset[0]}px,${this.canvasDefaultOffset[1]}px)`
-        console.log('fjslkdj')
-
-        console.log(this.canvasDefaultOffset)
 
         addAllInteractivityToSectionCanvas(this)
 
@@ -305,11 +302,9 @@ export class SectionCanvas {
             Array.from(newlyAddedIds).map((id) => this.sections.get(id)!),
             (section) => section.drawOnSectionCanvas(this)
         )
-
-        //// Update reticle
-        //this.reticle.update(this)
     }
 
+    // TODO: store edges when updating active sections and remove this function
     getSectionContentEdges = () => {
         const contentTopLeft: [number, number] = [
             Number.MAX_VALUE,
@@ -320,36 +315,6 @@ export class SectionCanvas {
             Number.MIN_VALUE,
         ]
         this.sections.forEach((section) => {
-            contentTopLeft[0] = Math.min(contentTopLeft[0], section.topLeft[0])
-            contentTopLeft[1] = Math.min(contentTopLeft[1], section.topLeft[1])
-            contentBotRight[0] = Math.max(
-                contentBotRight[0],
-                section.botRight[0]
-            )
-            contentBotRight[1] = Math.max(
-                contentBotRight[1],
-                section.botRight[1]
-            )
-        })
-
-        return { contentTopLeft, contentBotRight }
-    }
-
-    getActiveSectionContentEdges = () => {
-        // Get topleft active section
-        const activeSections = Array.from(this.subscribedSectionIds).map(
-            (id) => this.sections.get(id)!
-        )
-
-        const contentTopLeft: [number, number] = [
-            Number.MAX_VALUE,
-            Number.MAX_VALUE,
-        ]
-        const contentBotRight: [number, number] = [
-            Number.MIN_VALUE,
-            Number.MIN_VALUE,
-        ]
-        activeSections.forEach((section) => {
             contentTopLeft[0] = Math.min(contentTopLeft[0], section.topLeft[0])
             contentTopLeft[1] = Math.min(contentTopLeft[1], section.topLeft[1])
             contentBotRight[0] = Math.max(
@@ -437,70 +402,6 @@ export class SectionCanvas {
 
             this.centerScreenPixel(centeredPixel)
         }
-    }
-
-    applyOffsetDiffCheckBounds = (diff: [number, number]) => {
-        const { contentTopLeft, contentBotRight } =
-            this.getActiveSectionContentEdges()
-
-        const canvBoundRect = this.canvas.getBoundingClientRect()
-        const screenFrameBoundRect = this.frame.getBoundingClientRect()
-
-        const screenFrameToCanvasTopLeft = [
-            canvBoundRect.left - screenFrameBoundRect.left,
-            canvBoundRect.top - screenFrameBoundRect.top,
-        ]
-        const screenFrameToCanvasBotRight = [
-            canvBoundRect.right - screenFrameBoundRect.right,
-            canvBoundRect.bottom - screenFrameBoundRect.bottom,
-        ]
-
-        const canvasToSectionTopLeft =
-            this.sectionToCanvasCoords(contentTopLeft)
-        canvasToSectionTopLeft[0] *= this.screenPixelsPerCanvasPixel // Convert to screen pixel units
-        canvasToSectionTopLeft[1] *= this.screenPixelsPerCanvasPixel
-
-        const canvasToSectionBotRight =
-            this.sectionToCanvasCoords(contentBotRight)
-        canvasToSectionBotRight[0] -= this.canvas.width // In this approach we effectively make the canvas' bottom right the origin
-        canvasToSectionBotRight[1] -= this.canvas.height // TODO: look at this again
-        canvasToSectionBotRight[0] *= this.screenPixelsPerCanvasPixel
-        canvasToSectionBotRight[1] *= this.screenPixelsPerCanvasPixel
-
-        const screenFrameToSectionTopLeft = [
-            screenFrameToCanvasTopLeft[0] + canvasToSectionTopLeft[0],
-            screenFrameToCanvasTopLeft[1] + canvasToSectionTopLeft[1],
-        ]
-        const screenFrameToSectionBotRight = [
-            screenFrameToCanvasBotRight[0] + canvasToSectionBotRight[0],
-            screenFrameToCanvasBotRight[1] + canvasToSectionBotRight[1],
-        ]
-
-        // This reflects the maximum (screen pixel) size that the boundary around the canvas can take up on the screen
-        // - 0.1 to avoid overshoot when panning/zooming at the edges of the section content. Note that on displays
-        // with a ridiculously high devicePixelRatio (suspect 5 and above) this might lead to issues, namely that
-        // when zoomed out to minZoom (i.e. as far as possible) the pixels on the edges could not be centered
-        // anymore; Similarly, zooming out from an edge-pixel and then zooming in again would lead to the pixel
-        // next to it (towards the screen center) being focused, rather than the original edge pixel
-        // If this becomes a serious issue give it a look again, for now this appears to be an adequate fix
-        const canvasBoundarySize = [
-            screenFrameBoundRect.width / 2 - 0.1,
-            screenFrameBoundRect.height / 2 - 0.1,
-        ]
-
-        // TODO: this overshoots a bit when at the edge, probably because of numerical inaccuracies
-        // This can probably be fixed by introducing a 1 pixel "inset" towards the canvas center
-        // or something along those lines
-        if (screenFrameToSectionTopLeft[0] + diff[0] >= canvasBoundarySize[0])
-            diff[0] = canvasBoundarySize[0] - screenFrameToSectionTopLeft[0]
-        if (screenFrameToSectionTopLeft[1] + diff[1] >= canvasBoundarySize[1])
-            diff[1] = canvasBoundarySize[1] - screenFrameToSectionTopLeft[1]
-        if (screenFrameToSectionBotRight[0] + diff[0] <= -canvasBoundarySize[0])
-            diff[0] = -canvasBoundarySize[0] - screenFrameToSectionBotRight[0]
-        if (screenFrameToSectionBotRight[1] + diff[1] <= -canvasBoundarySize[1])
-            diff[1] = -canvasBoundarySize[1] - screenFrameToSectionBotRight[1]
-
-        this.applyOffsetDiff(diff)
     }
 
     applyOffsetDiff = (diff: [number, number]) => {
@@ -685,58 +586,6 @@ export class SectionCanvas {
             factor = this.minNormScale / this.normScale
     }
 
-    zoomScreenCoordsCheckScaleApplyEasing = (
-        screenCoords: [number, number],
-        factor: number,
-        durationMs: number,
-        steps: number
-    ) => {
-        this.zoomScreenCoordsApplyEasing(
-            screenCoords,
-            factor,
-            durationMs,
-            steps
-        )
-    }
-
-    zoomScreenCoordsCheckScale = (
-        screenCoords: [number, number],
-        factor: number
-    ) => {
-        this.zoomScreenCoordsCheckScaleApplyEasing(screenCoords, factor, 0, 1)
-    }
-
-    get screenPixelsPerCanvasPixel() {
-        return this.normScale * this.maxZoom
-    }
-
-    centerCanvasPixelCheckBounds = (canvasPixel: [number, number]) => {
-        this.centerCanvasPixelCheckBoundsApplyEasing(canvasPixel, 0, 1)
-    }
-
-    centerCanvasPixelCheckBoundsApplyEasing = (
-        canvasPixel: [number, number],
-        easingDuration: number,
-        easingSteps: number
-    ) => {
-        const { contentTopLeft, contentBotRight } =
-            this.getActiveSectionContentEdges()
-
-        const topLeftInCanvasCoords = this.sectionToCanvasCoords(contentTopLeft)
-        const botRightInCanvasCoords =
-            this.sectionToCanvasCoords(contentBotRight)
-
-        canvasPixel[0] = Math.max(canvasPixel[0], topLeftInCanvasCoords[0])
-        canvasPixel[1] = Math.max(canvasPixel[1], topLeftInCanvasCoords[1])
-        canvasPixel[0] = Math.min(canvasPixel[0], botRightInCanvasCoords[0] - 1) // Remember that botRight is exclusive
-        canvasPixel[1] = Math.min(canvasPixel[1], botRightInCanvasCoords[1] - 1)
-        this.centerCanvasPixelApplyEasing(
-            canvasPixel,
-            easingDuration,
-            easingSteps
-        )
-    }
-
     stopAnimation = () => {
         clearTimeout(this.curAnimationTimeoutId)
     }
@@ -832,6 +681,10 @@ export class SectionCanvas {
 
         this.offset[0] += diffToScreenCenter[0]
         this.offset[1] += diffToScreenCenter[1]
+    }
+
+    get screenPixelsPerCanvasPixel() {
+        return this.normScale * this.maxZoom
     }
 
     get frameCenterCoords(): [number, number] {
