@@ -14,8 +14,8 @@ export class Reticle {
         // Get center
         const frameCenter = sectionCanvas.frameCenterCoords
         // Nudge towards right to avoid overshoot on left edge (will be floored (will be floored))
-        frameCenter[0] += 0.00001
-        frameCenter[1] += 0.00001
+        frameCenter[0] += 0.001
+        frameCenter[1] += 0.001
 
         const canvasCoords = sectionCanvas.screenToCanvasPixel(frameCenter)
         this.curCanvasPixel = [canvasCoords[0], canvasCoords[1]]
