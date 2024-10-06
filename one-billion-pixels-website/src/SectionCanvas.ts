@@ -804,6 +804,7 @@ export class SectionCanvas {
             ]
 
             this.centerSectionCoords(next)
+            this.updateCanvas()
 
             this.curAnimationTimeoutId = setTimeout(
                 () => _centerCanvasPixelEasingRec(step + 1),
