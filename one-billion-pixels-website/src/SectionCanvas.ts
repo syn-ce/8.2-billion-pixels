@@ -547,7 +547,9 @@ export class SectionCanvas {
             )
         }
 
-        requestAnimationFrame(_zoomScreenCoordsEasingRec)
+        this.animationFrameIds.zoomId = requestAnimationFrame(
+            _zoomScreenCoordsEasingRec
+        )
     }
 
     zoomScreenCoords = (screenCoords: [number, number], factor: number) => {
@@ -640,7 +642,9 @@ export class SectionCanvas {
             )
         }
 
-        requestAnimationFrame(_centerCanvasPixelEasingRec)
+        this.animationFrameIds.panId = requestAnimationFrame(
+            _centerCanvasPixelEasingRec
+        )
     }
 
     centerCanvasPixel = (canvasPixel: [number, number]) => {

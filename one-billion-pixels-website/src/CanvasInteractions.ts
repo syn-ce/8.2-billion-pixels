@@ -23,7 +23,6 @@ const copyTouch = ({
     clientY: number
 }) => ({ id: identifier, x: clientX, y: clientY })
 
-// TODO: clicking for centering does not really work on mobile, haven't yet figured out why though
 const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onmousedown = (evt) => {
