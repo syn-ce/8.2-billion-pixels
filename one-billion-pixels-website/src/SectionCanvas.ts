@@ -672,33 +672,6 @@ export class SectionCanvas {
             Math.round(diffToCenter[1] * (actualFactor - 1)),
         ]
         this.applyOffsetDiff(translation)
-
-        this.updateCanvas()
-    }
-
-    //zoomScreenCoordsCheckScaleApplyEasingDesiredFactor = (
-    //    screenCoords: [number, number],
-    //    desiredFactor: number
-    //) => {
-    //    this.desiredScale = this.desiredScale * desiredFactor
-    //    // Round to nearest integer value
-    //    const factor = Math.round(this.desiredScale) / this.normScale
-    //    this.zoomScreenCoordsCheckScaleApplyEasing(screenCoords, factor, 0, 1)
-    //}
-
-    zoomLevelScreenCoordsCheckScaleApplyEasing = (
-        screenCoords: [number, number],
-        scale: number,
-        durationMs: number,
-        steps: number
-    ) => {
-        const factor = scale / (this.maxZoom * this.normScale)
-        this.zoomScreenCoordsCheckScaleApplyEasing(
-            screenCoords,
-            factor,
-            durationMs,
-            steps
-        )
     }
 
     clampScale = (scale: number) => {
