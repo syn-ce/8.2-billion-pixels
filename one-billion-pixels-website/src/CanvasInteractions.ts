@@ -202,6 +202,7 @@ const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
                 curCanvasPixel[0] - 1,
                 curCanvasPixel[1],
             ]
+            sectionCanvas.stopAnimation()
             sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowUp') {
@@ -209,6 +210,7 @@ const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
                 curCanvasPixel[0],
                 curCanvasPixel[1] - 1,
             ]
+            sectionCanvas.stopAnimation()
             sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowRight') {
@@ -216,6 +218,7 @@ const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
                 curCanvasPixel[0] + 1,
                 curCanvasPixel[1],
             ]
+            sectionCanvas.stopAnimation()
             sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         } else if (evt.code === 'ArrowDown') {
@@ -223,6 +226,7 @@ const addArrowPixelNavigation = (sectionCanvas: SectionCanvas) => {
                 curCanvasPixel[0],
                 curCanvasPixel[1] + 1,
             ]
+            sectionCanvas.stopAnimation()
             sectionCanvas.centerCanvasPixel(newCanvasPixel)
             sectionCanvas.updateCanvas()
         }
