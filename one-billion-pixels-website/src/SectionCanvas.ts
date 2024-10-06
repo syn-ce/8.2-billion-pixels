@@ -594,8 +594,7 @@ export class SectionCanvas {
     // offset mechanism)
     centerCanvasPixelApplyEasing = (
         canvasPixel: [number, number],
-        durationMs: number,
-        steps: number
+        durationMs: number
     ) => {
         // Clear previous animation (if still active, otherwise this does nothing)
         // TODO: this assumes that all timeouts are completed before the next one is scheduled, which is actually a decently irresponsible assumption to make
@@ -613,31 +612,32 @@ export class SectionCanvas {
         goalSectionCoords[0] += 0.5 // Want to center the center of the section pixel
         goalSectionCoords[1] += 0.5
 
+        // TODO: maybe also recalculate this diff so that we can zoom and center simultaneously
         const diff = [
             goalSectionCoords[0] - startSectionCoords[0],
             goalSectionCoords[1] - startSectionCoords[1],
         ]
 
-        const delay = durationMs / steps
-
-        const _centerCanvasPixelEasingRec = (step: number) => {
-            if (step > steps) return
+        let start = -1
+        const _centerCanvasPixelEasingRec = (time: number) => {
+            if (start == -1) start = time
+            const progress = Math.min(time - start, durationMs) / durationMs
 
             const next: [number, number] = [
-                startSectionCoords[0] + (diff[0] * step) / steps,
-                startSectionCoords[1] + (diff[1] * step) / steps,
+                startSectionCoords[0] + diff[0] * progress,
+                startSectionCoords[1] + diff[1] * progress,
             ]
 
             this.centerSectionCoords(next)
             this.updateCanvas()
 
-            this.curAnimationTimeoutId = setTimeout(
-                () => _centerCanvasPixelEasingRec(step + 1),
-                delay
+            if (progress >= 1) return
+            this.curAnimationTimeoutId = requestAnimationFrame(
+                _centerCanvasPixelEasingRec
             )
         }
 
-        _centerCanvasPixelEasingRec(1) // Step from 1 to steps
+        requestAnimationFrame(_centerCanvasPixelEasingRec)
     }
 
     centerCanvasPixel = (canvasPixel: [number, number]) => {

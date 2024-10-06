@@ -64,7 +64,7 @@ const addMousePanToCanvas = (sectionCanvas: SectionCanvas) => {
             sectionCanvas.startPanMousePos[1],
         ])
 
-        sectionCanvas.centerCanvasPixelApplyEasing(canvasPixel, 100, 6)
+        sectionCanvas.centerCanvasPixelApplyEasing(canvasPixel, 100)
     }
 
     canvas.onmouseleave = () => {
