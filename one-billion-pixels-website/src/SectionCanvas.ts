@@ -39,7 +39,7 @@ export class SectionCanvas {
     zoomSlider: ZoomSlider
     canvRetWrapper: HTMLDivElement
     colorProvider: ColorProvider
-    curAnimationTimeoutId: number
+    animationFrameIds: { updateCanvasId: number; panId: number; zoomId: number }
     canvasUpdateCallbacks: ((sectionCanvas: SectionCanvas) => void)[]
     test: number
     bufferSize: [number, number]
@@ -96,7 +96,7 @@ export class SectionCanvas {
         this.socket = socket
         this.frame = screenFrame
         this.panZoomWrapper = panZoomWrapper
-        this.curAnimationTimeoutId = -1
+        this.animationFrameIds = { updateCanvasId: -1, panId: -1, zoomId: -1 }
         this.canvasUpdateCallbacks = []
 
         const widthBufferSize = Math.ceil(screenFrame.clientWidth * 0.1)
@@ -542,7 +542,7 @@ export class SectionCanvas {
             this.updateCanvas() // TODO: use requestAnimationFrame with this as well
 
             if (progress >= 1) return
-            this.curAnimationTimeoutId = requestAnimationFrame(
+            this.animationFrameIds.zoomId = requestAnimationFrame(
                 _zoomScreenCoordsEasingRec
             )
         }
@@ -585,7 +585,9 @@ export class SectionCanvas {
     }
 
     stopAnimation = () => {
-        cancelAnimationFrame(this.curAnimationTimeoutId)
+        cancelAnimationFrame(this.animationFrameIds.updateCanvasId)
+        cancelAnimationFrame(this.animationFrameIds.panId)
+        cancelAnimationFrame(this.animationFrameIds.zoomId)
     }
 
     // We are using section coordinates in this function because they stay
@@ -633,7 +635,7 @@ export class SectionCanvas {
             this.updateCanvas()
 
             if (progress >= 1) return
-            this.curAnimationTimeoutId = requestAnimationFrame(
+            this.animationFrameIds.panId = requestAnimationFrame(
                 _centerCanvasPixelEasingRec
             )
         }
