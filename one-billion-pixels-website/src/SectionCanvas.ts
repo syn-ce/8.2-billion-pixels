@@ -142,6 +142,7 @@ export class SectionCanvas {
             ]
             const factor = zoomValue / (this.normScale * this.maxZoom)
             this.zoomScreenCoords(screenCenter, factor)
+            this.updateCanvas()
             //this.zoomScreenCoordsCheckScale(screenCenter, factor)
         })
 
