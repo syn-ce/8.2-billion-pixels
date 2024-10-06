@@ -116,8 +116,7 @@ initPlacePixelBtn.onclick = () => {
     sectionCanvas.zoomScreenCoordsApplyEasing(
         sectionCanvas.frameCenterCoords,
         0.8 / sectionCanvas.desiredScale,
-        300,
-        18
+        300
     )
 }
 

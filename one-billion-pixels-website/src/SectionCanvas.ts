@@ -519,8 +519,7 @@ export class SectionCanvas {
     zoomScreenCoordsApplyEasing = (
         screenCoords: [number, number],
         factor: number,
-        durationMs: number,
-        steps: number
+        durationMs: number
     ) => {
         // Clear previous animation (if still active, otherwise this does nothing)
         // TODO: this assumes that all timeouts are completed before the next one is scheduled, which is actually a decently irresponsible assumption to make
@@ -528,28 +527,26 @@ export class SectionCanvas {
 
         // Factor to apply at every step
         const goalDesiredScale = this.desiredScale * factor
-        const stepFactor = Math.pow(factor, 1 / steps)
-        const delay = durationMs / steps
 
-        const _zoomScreenCoordsEasingRec = (step: number) => {
-            if (step > steps) return
+        let start = -1
+        const _zoomScreenCoordsEasingRec = (time: number) => {
+            if (start == -1) start = time
+
+            const progress = Math.min(time - start, durationMs) / durationMs
 
             this.zoomScreenCoords(
                 screenCoords,
-                goalDesiredScale /
-                    stepFactor ** (steps - step) /
-                    this.desiredScale
-                //0.8 / sectionCanvas.desiredScale
+                goalDesiredScale / factor ** (1 - progress) / this.desiredScale // (want)/(sectionCanvas.desiredScale (=have))
             )
-            this.updateCanvas()
+            this.updateCanvas() // TODO: use requestAnimationFrame with this as well
 
-            this.curAnimationTimeoutId = setTimeout(
-                () => _zoomScreenCoordsEasingRec(step + 1),
-                delay
+            if (progress >= 1) return
+            this.curAnimationTimeoutId = requestAnimationFrame(
+                _zoomScreenCoordsEasingRec
             )
         }
 
-        _zoomScreenCoordsEasingRec(1) // Step from 1 to steps
+        requestAnimationFrame(_zoomScreenCoordsEasingRec)
     }
 
     zoomScreenCoords = (screenCoords: [number, number], factor: number) => {
@@ -587,7 +584,7 @@ export class SectionCanvas {
     }
 
     stopAnimation = () => {
-        clearTimeout(this.curAnimationTimeoutId)
+        cancelAnimationFrame(this.curAnimationTimeoutId)
     }
 
     // We are using section coordinates in this function because they stay
