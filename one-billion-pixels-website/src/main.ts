@@ -120,7 +120,7 @@ initPlacePixelBtn.onclick = () => {
     //    18 // 60 FPS // TODO: Maybe adjust this (and other updates / animations) to screen refresh rate
     //)
     sectionCanvas.zoomScreenCoords(
-        sectionCanvas.screenFrameCenterCoords,
+        sectionCanvas.frameCenterCoords,
         0.8 / sectionCanvas.normScale
     )
 }
@@ -148,7 +148,10 @@ sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
     initPlacePixelCoordsEl.innerText = `(${sectionPixel}) ${zoomLevel}x`
 })
 
-console.log(canvas.getBoundingClientRect())
+// TODO: Fix this, this is horrible
+setTimeout(() => {
+    sectionCanvas.centerSectionCoords([100, 100])
+    sectionCanvas.updateCanvas()
+}, 100)
 
-sectionCanvas.centerSectionCoords([0, 0])
 sectionCanvas.updateCanvas()

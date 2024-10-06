@@ -34,7 +34,7 @@ export class SectionCanvas {
     sections: Map<number, Section>
     subscribedSectionIds: Set<number>
     socket: Socket
-    screenFrame: HTMLDivElement
+    frame: HTMLDivElement
     panZoomWrapper: HTMLDivElement
     zoomSlider: ZoomSlider
     canvRetWrapper: HTMLDivElement
@@ -94,7 +94,7 @@ export class SectionCanvas {
         this.sections = sections
         this.subscribedSectionIds = subscribedSectionIds
         this.socket = socket
-        this.screenFrame = screenFrame
+        this.frame = screenFrame
         this.panZoomWrapper = panZoomWrapper
         this.curAnimationTimeoutId = -1
         this.canvasUpdateCallbacks = []
@@ -111,7 +111,7 @@ export class SectionCanvas {
         this.panZoomWrapper.style.transform = `scale(${this.normScale})`
 
         // Position canvas in center of screenFrame
-        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+        const screenFrameBoundRect = this.frame.getBoundingClientRect()
         const canvBoundRect = this.canvas.getBoundingClientRect()
         console.log(screenFrameBoundRect)
         console.log(canvBoundRect)
@@ -138,8 +138,7 @@ export class SectionCanvas {
         addAllInteractivityToSectionCanvas(this)
 
         this.zoomSlider.addInputCallback((zoomValue) => {
-            const screenFrameBoundRect =
-                this.screenFrame.getBoundingClientRect()
+            const screenFrameBoundRect = this.frame.getBoundingClientRect()
             const screenCenter: [number, number] = [
                 screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
                 screenFrameBoundRect.top + screenFrameBoundRect.height / 2,
@@ -312,6 +311,31 @@ export class SectionCanvas {
     }
 
     getSectionContentEdges = () => {
+        const contentTopLeft: [number, number] = [
+            Number.MAX_VALUE,
+            Number.MAX_VALUE,
+        ]
+        const contentBotRight: [number, number] = [
+            Number.MIN_VALUE,
+            Number.MIN_VALUE,
+        ]
+        this.sections.forEach((section) => {
+            contentTopLeft[0] = Math.min(contentTopLeft[0], section.topLeft[0])
+            contentTopLeft[1] = Math.min(contentTopLeft[1], section.topLeft[1])
+            contentBotRight[0] = Math.max(
+                contentBotRight[0],
+                section.botRight[0]
+            )
+            contentBotRight[1] = Math.max(
+                contentBotRight[1],
+                section.botRight[1]
+            )
+        })
+
+        return { contentTopLeft, contentBotRight }
+    }
+
+    getActiveSectionContentEdges = () => {
         // Get topleft active section
         const activeSections = Array.from(this.subscribedSectionIds).map(
             (id) => this.sections.get(id)!
@@ -341,6 +365,13 @@ export class SectionCanvas {
         return { contentTopLeft, contentBotRight }
     }
 
+    sectionToCanvasPixel = (
+        sectionCoords: [number, number]
+    ): [number, number] => {
+        const canvasCoords = this.sectionToCanvasCoords(sectionCoords)
+        return [Math.floor(canvasCoords[0]), Math.floor(canvasCoords[1])]
+    }
+
     sectionToCanvasCoords = (
         sectionCoords: [number, number]
     ): [number, number] => {
@@ -348,6 +379,23 @@ export class SectionCanvas {
             sectionCoords[0] + this.contentOffset[0],
             sectionCoords[1] + this.contentOffset[1],
         ]
+    }
+
+    sectionToScreenCoords = (sectionCoords: [number, number]) => {
+        const canvCoords = this.sectionToCanvasCoords(sectionCoords)
+        return this.canvasToScreenCoords(canvCoords)
+    }
+
+    sectionToScreenPixel = (
+        sectionCoords: [number, number]
+    ): [number, number] => {
+        const screenCoords = this.sectionToScreenCoords(sectionCoords)
+        return [Math.round(screenCoords[0]), Math.round(screenCoords[1])]
+    }
+
+    canvasToSectionPixel = (canvasPixel: [number, number]) => {
+        const sectionCoords = this.canvasToSectionCoords(canvasPixel)
+        return [Math.floor(sectionCoords[0]), Math.floor(sectionCoords[1])]
     }
 
     canvasToSectionCoords = (
@@ -359,12 +407,44 @@ export class SectionCanvas {
         ]
     }
 
-    applyOffsetDiffCheckBounds = (diff: [number, number]) => {
+    // Check if we overshot
+    checkContentBounds = () => {
         const { contentTopLeft, contentBotRight } =
             this.getSectionContentEdges()
+        // Check whether content edge or max/min allowed scale has been reached / overstepped
+        // Check edge
+        // Simply check if current center is out of bounds
+        const sectionPixel = this.screenToSectionPixel(this.frameCenterCoords)
+        const centeredPixel = this.frameCenterCoords
+
+        const topLeftScreenPix = this.sectionToScreenPixel(contentTopLeft)
+        const botRightScreenPix = this.sectionToScreenPixel(contentBotRight)
+
+        if (
+            sectionPixel[0] < contentTopLeft[0] ||
+            sectionPixel[0] >= contentBotRight[0] ||
+            sectionPixel[1] < contentTopLeft[1] ||
+            sectionPixel[1] >= contentBotRight[1]
+        ) {
+            centeredPixel[0] = Math.min(
+                Math.max(centeredPixel[0], topLeftScreenPix[0]),
+                botRightScreenPix[0] - 1
+            )
+            centeredPixel[1] = Math.min(
+                Math.max(centeredPixel[1], topLeftScreenPix[1]),
+                botRightScreenPix[1] - 1
+            )
+
+            this.centerScreenPixel(centeredPixel)
+        }
+    }
+
+    applyOffsetDiffCheckBounds = (diff: [number, number]) => {
+        const { contentTopLeft, contentBotRight } =
+            this.getActiveSectionContentEdges()
 
         const canvBoundRect = this.canvas.getBoundingClientRect()
-        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+        const screenFrameBoundRect = this.frame.getBoundingClientRect()
 
         const screenFrameToCanvasTopLeft = [
             canvBoundRect.left - screenFrameBoundRect.left,
@@ -441,6 +521,8 @@ export class SectionCanvas {
 
     updateCanvas = () => {
         this.test++
+        this.setTransform()
+        this.checkContentBounds()
         this.checkOffsetBuffers()
         this.setTransform()
         this.reticle.update(this)
@@ -450,7 +532,7 @@ export class SectionCanvas {
 
     checkOffsetBuffers = () => {
         const screenPixelsPerCanvasPixel = this.screenPixelsPerCanvasPixel
-        const frameBoundRect = this.screenFrame.getBoundingClientRect()
+        const frameBoundRect = this.frame.getBoundingClientRect()
 
         const adjustedBufferSize = [
             this.bufferSize[0] * screenPixelsPerCanvasPixel +
@@ -480,6 +562,17 @@ export class SectionCanvas {
             this.offset[0] -= contentOffsetDiff[0] * screenPixelsPerCanvasPixel
             this.offset[1] -= contentOffsetDiff[1] * screenPixelsPerCanvasPixel
         }
+    }
+
+    screenToSectionPixel = (screenPixel: [number, number]) => {
+        const canvPix = this.screenToCanvasPixel(screenPixel)
+        return this.canvasToSectionCoords(canvPix)
+    }
+
+    screenToSectionCoords = (screenCoords: [number, number]) => {
+        return this.canvasToSectionCoords(
+            this.screenToCanvasCoords(screenCoords)
+        )
     }
 
     screenToCanvasCoords = (
@@ -648,7 +741,7 @@ export class SectionCanvas {
         easingSteps: number
     ) => {
         const { contentTopLeft, contentBotRight } =
-            this.getSectionContentEdges()
+            this.getActiveSectionContentEdges()
 
         const topLeftInCanvasCoords = this.sectionToCanvasCoords(contentTopLeft)
         const botRightInCanvasCoords =
@@ -683,7 +776,7 @@ export class SectionCanvas {
         // TODO: this assumes that all timeouts are completed before the next one is scheduled, which is actually a decently irresponsible assumption to make
         this.stopAnimation()
         // TODO: does not respect screenFrame - see TODO somwhere below
-        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+        const screenFrameBoundRect = this.frame.getBoundingClientRect()
         const startSectionCoords: [number, number] = this.canvasToSectionCoords(
             this.screenToCanvasCoords([
                 screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
@@ -741,13 +834,11 @@ export class SectionCanvas {
         const screenPixel = this.canvasToScreenCoords(
             this.sectionToCanvasCoords(sectionCoords)
         )
-        screenPixel[0]
-        screenPixel[1]
         this.centerScreenPixel(screenPixel)
     }
 
     centerScreenPixel = (targetScreenPixel: [number, number]) => {
-        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+        const screenFrameBoundRect = this.frame.getBoundingClientRect()
         const diffToScreenCenter = [
             screenFrameBoundRect.left +
                 screenFrameBoundRect.width / 2 -
@@ -763,8 +854,8 @@ export class SectionCanvas {
         this.offset[1] += diffToScreenCenter[1]
     }
 
-    get screenFrameCenterCoords(): [number, number] {
-        const screenFrameBoundRect = this.screenFrame.getBoundingClientRect()
+    get frameCenterCoords(): [number, number] {
+        const screenFrameBoundRect = this.frame.getBoundingClientRect()
         return [
             screenFrameBoundRect.left + screenFrameBoundRect.width / 2,
             screenFrameBoundRect.top + screenFrameBoundRect.height / 2,
