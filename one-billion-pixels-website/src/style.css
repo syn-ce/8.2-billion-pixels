@@ -55,12 +55,18 @@ body {
     pointer-events: none;
 }
 
+#initiate-place-pixel-wrapper {
+    position: fixed;
+    left: 50%;
+    bottom: 3em;
+    transform: translate(-50%);
+}
+
 #initiate-place-pixel {
-    position: absolute;
+    position: relative;
     width: 200px;
     height: fit-content;
     padding: 5px;
-    bottom: 7%;
     background-color: orangered;
 }
 
