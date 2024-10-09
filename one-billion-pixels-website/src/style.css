@@ -279,3 +279,11 @@ button:focus-visible {
         background-color: #f9f9f9;
     }
 }
+
+/* Test whether user's primary input mechanism can hover
+-> Cannot hover on (mobile) devices with touchscreen */
+@media (hover: none) {
+    #zoom-slider-wrapper {
+        display: none;
+    }
+}
