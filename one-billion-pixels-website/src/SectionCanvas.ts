@@ -289,7 +289,7 @@ export class SectionCanvas {
 
         //this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
         this.ctx.fillStyle = this.colorProvider.colorToFillStyleString([
-            100, 100, 100,
+            60, 60, 60,
         ])
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
         // Draw remaining old ones

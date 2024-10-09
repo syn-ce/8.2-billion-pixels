@@ -176,9 +176,42 @@ body {
 #zoom-slider-wrapper {
     position: absolute;
     left: 10%;
-    bottom: 10%;
+    bottom: 4em;
     display: flex;
     flex-direction: column;
+}
+
+.slider {
+    -webkit-appearance: none; /* Override default CSS styles */
+    appearance: none;
+    outline: none; /* Remove outline */
+    -webkit-transition: 0.2s; /* 0.2 seconds transition on hover */
+    transition: opacity 0.2s;
+    background-color: transparent;
+    border: 1px solid rgb(50, 50, 50);
+}
+
+.slider:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #b7bebc; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+    border-radius: 0px;
+    border: 0px;
+    height: 100%; /* Slider handle height */
+    width: auto;
+    aspect-ratio: 1;
+    background: #b7bebc; /* Green background */
+    cursor: pointer; /* Cursor on hover */
 }
 
 button {
