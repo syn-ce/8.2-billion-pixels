@@ -181,6 +181,10 @@ body {
     flex-direction: column;
 }
 
+#zoom-slider-label {
+    mix-blend-mode: difference;
+}
+
 .slider {
     -webkit-appearance: none; /* Override default CSS styles */
     appearance: none;
