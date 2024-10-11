@@ -12,6 +12,7 @@ services:
         networks:
             - frontend
             - backend
+        image: flask-app:prod
     nginx:
         depends_on:
             - flask-app
@@ -22,10 +23,12 @@ services:
             - 8000:80
         networks:
             - frontend
+        image: nginx:prod
     redis:
         image: 'redis:alpine'
         networks:
             - backend
+        container_name: redis-prod
 
     redisinsight:
         image: 'redislabs/redisinsight:latest'
@@ -33,6 +36,7 @@ services:
             - 5540:5540
         networks:
             - backend
+        container_name: redis-insight-prod
 networks:
     frontend:
     backend:
