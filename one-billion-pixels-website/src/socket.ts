@@ -11,7 +11,7 @@ export const setupSocket = () => {
     })
 
     socket.onAny((eventName, ...args) =>
-        console.log(`received Event: ${eventName}`)
+        console.log(`received Event: ${eventName} with args ${args}`)
     )
 
     return socket

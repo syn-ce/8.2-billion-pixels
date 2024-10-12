@@ -1,3 +1,4 @@
+// Only used during development. For proxying in production, see nginx.conf.
 import { defineConfig } from 'vite'
 
 export default defineConfig({
