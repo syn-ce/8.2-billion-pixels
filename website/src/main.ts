@@ -12,11 +12,12 @@ window.onload = () => {
     document.body.classList.remove('prevent-transition-before-pageload')
     const screenFrame = <HTMLDivElement>document.getElementById('screen-frame')
 
-    screenFrame.style.top = `0px`
-    screenFrame.style.left = '0px'
+    screenFrame.style.width = `100dvw`
+    screenFrame.style.height = `100dvh`
 
-    screenFrame.style.width = `${Math.round(screen.width)}px`
-    screenFrame.style.height = `${Math.round(screen.height)}px`
+    const boundRect = screenFrame.getBoundingClientRect()
+    screenFrame.style.top = `${-boundRect.top}px` // *Sigh*, mobile browsers
+    screenFrame.style.left = '0px'
 }
 
 const socket = setupSocket()

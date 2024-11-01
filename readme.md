@@ -11,12 +11,11 @@ Note that this project is still **in development**. In particular, here's a list
 ## Known Issues / TODO
 
 -   [ ] When using Firefox on a mobile device, the position of the reticle will not properly match the canvas, leading to a very unsatisfying user experience. In other browsers and on desktop this problem does not occur. If you have an idea what could cause this, here's a [related stackoverflow post](https://stackoverflow.com/questions/79057124/canvas-content-escapes-canvas-on-mobile-in-firefox). Similarly, the reticle's outline isn't properly clipped.
--   [ ] The worker of the flask server instances is prone to timing out. In general, the backend is quite wonky at the moment. In general, its appearance also needs some polishing.
--   [ ] The UI has a couple of bugs, e.g., sometimes the reticle escapes the logical canvas (that is, it hovers over a pixel "out of bounds" that cannot be set).
+-   [ ] The worker of the flask server instances is prone to timing out. In general, the backend is quite wonky at the moment; The container also doesn't stop properly.
+-   [ ] The UI has a couple of bugs, e.g., sometimes the reticle escapes the logical canvas (that is, it hovers over a pixel "out of bounds" that cannot be set). In general, its appearance also needs some polishing.
 -   [ ] While the fetching of and subscribing to sections basically works, no buffering (be it in space or time) is implemented, meaning as soon as a section goes out of view the client unsubscribes, forgets about it and has to request it again once it reenters the view.
 -   [ ] The zoom levels are restricted to whole integers. Especially on mobile this can feel awkward. Fixing this should be straightforward (it was initially introduced to avoid fractional offsets; working with exact values in the background and rounding them to, say, 2 decimals when applying should have potential to work)
 -   [ ] Currently there's no manual synchronization happening. Instead, both the server and the client rely on events arriving in the order in which they were dispatched. Since this is not guaranteed (especially considering the variety in latencies from clients to the server), adding timestamps to the events will be necessary.
--   [ ] Because browsers don't necessarily like to agree on how to calculate heights of windows and viewports, the reticle is currently not centered on Firefox.
 
 ## Architecture
 
