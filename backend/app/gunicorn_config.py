@@ -1,6 +1,8 @@
 from collections.abc import Iterable
+from logging.handlers import RotatingFileHandler
 import os
 import struct
+import sys
 
 from redis import Redis
 from gunicorn.arbiter import Arbiter
@@ -25,14 +27,25 @@ secure_scheme_headers = {'X-Forwarded-Proto': 'https'}
 
 # Set up logging before gunicorn server starts
 def setup_logging():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.StreamHandler()
-        ]
-    )
+    # Log to stdout (console)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
 
+    # Log to a file (rotating logs)
+    file_handler = RotatingFileHandler('app.log', maxBytes=10000000, backupCount=10)
+    file_handler.setLevel(logging.INFO)
+
+    # Formatter for both handlers
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    # Add handlers to the root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+    #logging.basicConfig(filename='myapp.log', level=logging.INFO, format="%(asctime)s] %(levelname)s in %(module)s: %(message)s'")
 
 def set_sections_config_values(redis: Redis, section_width: int, section_height: int, nr_rows: int, nr_cols: int, bits_per_color: int, color_provider: ColorProvider):
     redis.set(RedisKeys.TOTAL_NR_PIXELS, section_width * section_height * nr_rows * nr_cols)

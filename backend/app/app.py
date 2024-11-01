@@ -88,7 +88,6 @@ def create_app():
 
     @socketio.on('set_pixel')
     def handle_set_pixel(data):
-        logging.info('received request')
         sectionId, pixelIdx, color = data
         bitfield = redis.bitfield(sectionId)
         bitfield.set(f'u{bits_per_color}', f'#{pixelIdx}', color)
