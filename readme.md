@@ -27,5 +27,7 @@ This is the general setup. Since Traefik already proxies my server, I've decided
 ## How to synchronize 8.2 Billion pixels
 
 The key insight is that of all these pixels, only a fraction of them is visible at any given time for any one client. Even with a 4k monitor, only a little more than 0.1% (~8 Million pixels) of all pixels will be visible.
+
 It is therefore natural to split the actual canvas up into logical _sections_ of size, let's say, 1000x1000 pixels. (Varying this size and maybe even adjusting it dynamically based on, e.g., server load, could potentially be a very interesting undertaking!) With 1 Million pixels each, we get a little more than 8000 of these logical square sections. A client will then simply only fetch the data of the sections which are currently visible to it (potentially with a bit of buffering as to avoid frequent reloads at edges of sections), and similarly subscribe to only these as well.
+
 A client will then fetch the whole array of data for any section which comes into view and then subscribe to it to get notified about pixels being placed in it.
