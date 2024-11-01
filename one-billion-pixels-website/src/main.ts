@@ -10,6 +10,13 @@ import { ZoomSlider } from './ZoomSlider'
 // Allow transitions after pageload
 window.onload = () => {
     document.body.classList.remove('prevent-transition-before-pageload')
+    const screenFrame = <HTMLDivElement>document.getElementById('screen-frame')
+
+    screenFrame.style.top = `0px`
+    screenFrame.style.left = '0px'
+
+    screenFrame.style.width = `${Math.round(screen.width)}px`
+    screenFrame.style.height = `${Math.round(screen.height)}px`
 }
 
 const socket = setupSocket()
@@ -88,6 +95,10 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     colorPicker,
     canvasDefaultOffsetWrapper
 )
+
+window.onresize = () => {
+    sectionCanvas.updateCanvas()
+}
 
 const initPlacePixelBtn = <HTMLButtonElement>(
     document.getElementById('initiate-place-pixel')
