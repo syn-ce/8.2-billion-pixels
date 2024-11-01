@@ -156,7 +156,7 @@ sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
 
 // TODO: Fix this, this is horrible
 setTimeout(() => {
-    sectionCanvas.centerSectionCoords([100, 100])
+    sectionCanvas.centerSectionCoords([0, 0])
     sectionCanvas.updateCanvas()
 }, 100)
 

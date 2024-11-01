@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from logging.handlers import RotatingFileHandler
+import math
 import os
 import struct
 import sys
@@ -86,13 +87,18 @@ def on_starting(server: Arbiter):
     setup_logging()
 
     # A billion bits (well, not during development).
-    BITS_PER_COLOR = 2
+    BITS_PER_COLOR = 4
     NR_COLS = 5
     NR_ROWS = 5
     SEC_WIDTH = 1000
     SEC_HEIGHT = 1000
-    START_TOP_LEFT = (0, 0)
-    COLORS = [Color(255, 255, 255), Color(0, 0, 0), Color(52, 235, 168), Color(161, 52, 235)]
+    total_width = SEC_WIDTH * NR_COLS
+    total_height = SEC_HEIGHT * NR_ROWS
+    # TODO: store colors in db
+    START_TOP_LEFT = (-math.floor(total_width / 2), -math.floor(total_height / 2))
+    COLORS = [Color(255, 255, 255), Color(0, 0, 0), Color(247, 174, 248), Color(179, 136, 235), 
+              Color(128, 147, 241), Color(114, 221, 247), Color(244, 244, 237), Color(219, 207, 176), 
+              Color(115, 171, 132)]
     color_provider = ColorProvider(BITS_PER_COLOR, COLORS)
 
     redis = Redis(host='redis', port=6379)
