@@ -32,7 +32,7 @@ def setup_logging():
     console_handler.setLevel(logging.INFO)
 
     # Log to a file (rotating logs)
-    file_handler = RotatingFileHandler('app.log', maxBytes=10000000, backupCount=10)
+    file_handler = RotatingFileHandler(f'{os.getenv('LOGS_FOLDER')}/app.log', maxBytes=10000000, backupCount=10)
     file_handler.setLevel(logging.INFO)
 
     # Formatter for both handlers
