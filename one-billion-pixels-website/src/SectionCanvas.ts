@@ -116,7 +116,6 @@ export class SectionCanvas {
         console.log(screenFrameBoundRect)
         console.log(canvBoundRect)
 
-        // TODO: maybe round this
         const d = [
             screenFrameBoundRect.left +
                 screenFrameBoundRect.width / 2 -
@@ -128,7 +127,7 @@ export class SectionCanvas {
                 canvBoundRect.height / 2,
         ]
 
-        this.canvasDefaultOffset = [d[0], d[1]]
+        this.canvasDefaultOffset = [Math.round(d[0]), Math.round(d[1])]
         this.canvasDefaultOffsetWrapper = canvasDefaultOffsetWrapper
         this.canvasDefaultOffsetWrapper.style.transform = `translate(${this.canvasDefaultOffset[0]}px,${this.canvasDefaultOffset[1]}px)`
 
