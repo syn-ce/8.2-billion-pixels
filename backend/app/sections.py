@@ -7,7 +7,7 @@ type Point2D = tuple[int, int]
 SectionJson = TypedDict('SectionJson', {'topLeft': Point2D, 'botRight': Point2D, 'id': int})
 
 class Section:
-    s = struct.Struct('IIIII')
+    s = struct.Struct('iiiiI')
     top_left:  Point2D
     bot_right: Point2D
     id: int
