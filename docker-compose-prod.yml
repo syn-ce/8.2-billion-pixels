@@ -1,36 +1,101 @@
+# Assumes to be proxied by traefik. The network to use is 'traefik-public', which in any
+# case has to be created beforehand.
+
 services:
-    flask-app:
+    #    traefik:
+    #        image: traefik:latest
+    #        networks:
+    #            - traefik-public
+    #        command:
+    #            #- '--api.insecure=true'
+    #            - '--providers.docker=true'
+    #            #- '--providers.swarm.network=bipix-traefik-net'
+    #            #- '--providers.swarm.endpoint=unix:///var/run/docker.sock'
+    #            #- '--providers.swarm.exposedbydefault=false'
+    #            - '--providers.docker.exposedbydefault=false'
+    #            - '--entrypoints.web.address=:80' # Traefik listens on port 80 for HTTP
+    #            - '--entrypoints.websecure.address=:443' # Traefik listens on port 80 for HTTP
+    #            - '--log.level=DEBUG'
+    #            #- '--entryPoints.web.forwardedHeaders.insecure'
+    #        #ports:
+    #        #    # The Web UI (enabled by --api.insecure=true)
+    #        #- 80:80
+    #        #- 443:443
+    #        #- '9875:80'
+    #
+    #        volumes:
+    #            - '/var/run/docker.sock:/var/run/docker.sock:ro'
+    #        #- '9001:8080'
+    #        #        volumes:
+    #        #            # So that Traefik can listen to the Docker events
+    #        #            - /var/run/docker.sock:/var/run/docker.sock:ro
+    #        # labels for traefik
+    #        labels:
+    #            - 'traefik.enable=true'
+    #            - 'traefik.http.routers.bipix.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`bipix`)'
+    #            #- 'traefik.http.routers.bipix.entrypoints=web'
+    #            #- 'traefik.http.services.bipix.loadbalancer.server.port=80'
+    #            #- 'traefik.http.routers.bipix.entrypoints=http'
+    #            #- 'traefik-network-to-use=traefik.net'
+    #            - 'traefik.http.middlewares.bipix-strip-bipix-prefix.stripprefix.prefixes=/bipix'
+    #            - 'traefik.http.routers.bipix.middlewares=bipix-strip-bipix-prefix'
+
+    flask-app: # depends on redis, traefik
         image: flask-app:prod
-        depends_on:
-            - redis
         environment:
             - FLASK_ENV=production
+        networks:
+            - traefik-public
+            - bipix-backend
+        labels:
+            # Tell Traefik to expose this container
+            - 'traefik.enable=true'
+            - 'traefik.http.routers.flask-app.rule=(Host(`bipix.${DOMAIN_NAME}`) || Host(`www.bipix.${DOMAIN_NAME}`)) && PathPrefix(`/api`)'
+            - 'traefik.http.routers.flask-app.service=flask-app'
+            - 'traefik.http.middlewares.flask-app-strip-api-prefix.stripprefix.prefixes=/api'
+            - 'traefik.http.routers.flask-app.middlewares=flask-app-strip-api-prefix'
+
+            - 'traefik.http.routers.flask-app.entrypoints=websecure'
+            - 'traefik.http.routers.flask-app.tls.certresolver=myresolver'
+            - 'traefik.http.services.flask-app.loadbalancer.server.port=5000'
+
+            - 'traefik.http.routers.flask-app-socket.rule=(Host(`bipix.${DOMAIN_NAME}`) || Host(`www.bipix.${DOMAIN_NAME}`)) && PathPrefix(`/socket.io`)'
+            - 'traefik.http.routers.flask-app-socket.service=flask-app-socket'
+
+            - 'traefik.http.routers.flask-app-socket.entrypoints=websecure'
+            - 'traefik.http.routers.flask-app-socket.tls.certresolver=myresolver'
+            - 'traefik.http.services.flask-app-socket.loadbalancer.server.port=5000'
         deploy:
-            replicas: 2
-        networks:
-            - frontend
-            - backend
-    nginx:
+            replicas: 1
+
+    nginx: # depends on flask-app, traefik
         image: nginx:prod
-        depends_on:
-            - flask-app
-        ports:
-            - 8000:80
         networks:
-            - frontend
+            - traefik-public
+        labels:
+            - 'traefik.enable=true'
+            - 'traefik.http.routers.website.rule=Host(`bipix.${DOMAIN_NAME}`) || Host(`www.bipix.${DOMAIN_NAME}`)'
+
+            - 'traefik.http.routers.website.entrypoints=websecure'
+            - 'traefik.http.routers.website.tls.certresolver=myresolver'
+            - 'traefik.http.services.website.loadbalancer.server.port=80'
+
     redis:
         image: 'redis:alpine'
         networks:
-            - backend
-        container_name: redis-prod
+            - bipix-backend
+        command:
+            - '--save 60 1'
+        volumes:
+            - redis-data:/data
 
-    redisinsight:
-        image: 'redislabs/redisinsight:latest'
-        ports:
-            - 5540:5540
-        networks:
-            - backend
-        container_name: redis-insight-prod
+volumes:
+    redis-data:
+
 networks:
-    frontend:
-    backend:
+    bipix-backend:
+        name: bipix-backend
+
+    traefik-public:
+        name: traefik-public
+        external: true

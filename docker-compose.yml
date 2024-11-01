@@ -1,15 +1,22 @@
 services:
-    #website:
-    #    depends_on:
-    #        - flask_app
-    #    build: ./one-billion-pixels-website
-    #    ports:
-    #        - 5173:5173
-    #    volumes:
-    #        - ./one-billion-pixels-website:/one-billion-pixels-website
+    traefik:
+        image: traefik:v3.1
+        command:
+            - '--api.insecure=true'
+            - '--providers.docker=true'
+            - '--providers.docker.exposedbydefault=false'
+            - '--entrypoints.web.address=:80'
+        ports:
+            # The Web UI (enabled by --api.insecure=true)
+            - '9876:80'
+            - '9000:8080'
+        volumes:
+            # So that Traefik can listen to Docker events
+            - /var/run/docker.sock:/var/run/docker.sock
     flask-app:
         depends_on:
             - redis
+            - traefik
         build:
             context: ./backend
             target: development
@@ -17,23 +24,38 @@ services:
             - ./backend/app:/app
         environment:
             - FLASK_ENV=development
-        deploy:
-            replicas: 1
-
+        labels:
+            # Tell Traefik to expose this container
+            - 'traefik.enable=true'
+            - 'traefik.http.routers.flask-app.rule=Host(`website.localhost`) && PathPrefix(`/api`)'
+            - 'traefik.http.middlewares.flask-app-strip-api-prefix.stripprefix.prefixes=/api'
+            - 'traefik.http.routers.flask-app.middlewares=flask-app-strip-api-prefix'
+            - 'traefik.http.services.flask-app.loadbalancer.server.port=5000'
+            - 'traefik.http.routers.flask-app-socket.rule=Host(`website.localhost`) && PathPrefix(`/socket.io`)'
     website:
         depends_on:
             - flask-app
+            - traefik
         build:
             context: ./one-billion-pixels-website
             target: development
-        ports:
-            - 5173:8000
         volumes:
             - ./one-billion-pixels-website:/app
+        labels:
+            - 'traefik.enable=true'
+            - 'traefik.http.routers.website.rule=Host(`website.localhost`)'
+            - 'traefik.http.services.website.loadbalancer.server.port=8000'
     redis:
         image: 'redis:alpine'
+        command:
+            - '--save 60 1'
+        volumes:
+            - redis-data:/data
 
     redisinsight:
         image: 'redislabs/redisinsight:latest'
         ports:
             - 5540:5540
+
+volumes:
+    redis-data:
