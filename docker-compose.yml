@@ -27,11 +27,11 @@ services:
         labels:
             # Tell Traefik to expose this container
             - 'traefik.enable=true'
-            - 'traefik.http.routers.flask-app.rule=Host(`website.localhost`) && PathPrefix(`/api`)'
+            - 'traefik.http.routers.flask-app.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`/api`)'
             - 'traefik.http.middlewares.flask-app-strip-api-prefix.stripprefix.prefixes=/api'
             - 'traefik.http.routers.flask-app.middlewares=flask-app-strip-api-prefix'
             - 'traefik.http.services.flask-app.loadbalancer.server.port=5000'
-            - 'traefik.http.routers.flask-app-socket.rule=Host(`website.localhost`) && PathPrefix(`/socket.io`)'
+            - 'traefik.http.routers.flask-app-socket.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`/socket.io`)'
     website:
         depends_on:
             - flask-app
@@ -43,7 +43,7 @@ services:
             - ./one-billion-pixels-website:/app
         labels:
             - 'traefik.enable=true'
-            - 'traefik.http.routers.website.rule=Host(`website.localhost`)'
+            - 'traefik.http.routers.website.rule=Host(`${DOMAIN_NAME}`)'
             - 'traefik.http.services.website.loadbalancer.server.port=8000'
     redis:
         image: 'redis:alpine'
