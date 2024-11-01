@@ -65,13 +65,15 @@ def create_app():
     @socketio.on('connect')
     def handle_connect():
         session['user_id'] = str(uuid.uuid4())
-        logging.info(f'Client connected {redis.incr("clients", 0) + 1}')
+        redis.incr('clients')
+        logging.info(f'Client {session['user_id']} connected ({redis.get('clients')})')
         # TODO: care about this in the frontend
         socketio.emit('session', {'user_id': session['user_id']})
 
     @socketio.on('disconnect')
     def handle_disconnect():
-        logging.info(f'Client disconnected {redis.decr("clients", 0) - 1}')
+        redis.decr('clients')
+        logging.info(f'Client {session['user_id']} disconnected ({redis.get('clients')})')
 
     # TODO: add validation to all endpoints / messages
     @socketio.on('subscribe')
