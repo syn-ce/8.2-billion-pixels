@@ -10,6 +10,6 @@ services:
         depends_on:
             - flask-app
         build:
-            context: ./one-billion-pixels-website
+            context: ./website
             target: production
         image: nginx:prod

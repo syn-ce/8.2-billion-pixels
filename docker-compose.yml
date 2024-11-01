@@ -39,10 +39,10 @@ services:
             - flask-app
             - traefik
         build:
-            context: ./one-billion-pixels-website
+            context: ./website
             target: development
         volumes:
-            - ./one-billion-pixels-website:/app
+            - ./website:/app
         labels:
             - 'traefik.enable=true'
             - 'traefik.http.routers.website.rule=Host(`${DOMAIN_NAME}`)'
