@@ -89,8 +89,9 @@ export class ColorPicker implements ColorProvider {
     }
 
     getColorById(colorId: number): [number, number, number] | undefined {
-        for (const color of this.colorChoices) {
-            if (color.id === colorId) return color.rgb
+        for (let i = 0; i < this.colorChoices.length; i++) {
+            if (this.colorChoices[i].id === colorId)
+                return this.colorChoices[i].rgb
         }
         return undefined
     }
