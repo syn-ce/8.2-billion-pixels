@@ -19,7 +19,7 @@ export class EvtSocket {
     handlers: Map<string, EventHandler>
 
     constructor() {
-        this.websocket = new WebSocket('http://127.0.0.1:8030/ws')
+        this.websocket = new WebSocket('/ws')
         this.handlers = new Map()
 
         this.websocket.onmessage = (ev: MessageEvent) => {

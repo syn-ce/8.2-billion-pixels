@@ -1,8 +1,7 @@
 import { ColorChoice } from './ColorPicker'
 import { Section, SectionAttributes } from './Section'
 
-//const URL = '/api'
-const URL = 'http://127.0.0.1:8030'
+const URL = '/api'
 
 export const fetchColorChoices = async () => {
     const resp = await fetch(`${URL}/colors`)

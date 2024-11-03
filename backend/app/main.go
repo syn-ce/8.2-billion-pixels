@@ -11,7 +11,7 @@ import (
 
 func setupAPI() (*mux.Router, error) {
 	manager, err := NewManager(&redis.Options{
-		Addr: "website.localhost:6379",
+		Addr: "redis:6379",
 		Password: "",
 		DB: 0,
 	})	
@@ -41,7 +41,7 @@ func main() {
 		return
 	}
 	http.Handle("/", router)
-	log.Fatal(http.ListenAndServe(":8030", nil))
+	log.Fatal(http.ListenAndServe(":5000", nil))
 }
 
 func initRedisFromScratch(m *Manager) {

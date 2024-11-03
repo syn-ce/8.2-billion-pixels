@@ -1,25 +1,32 @@
-FROM python:3.12-slim AS development
-
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-
-COPY app app
+FROM golang:latest AS development
 
 WORKDIR /app
 
-CMD ["gunicorn", "--config", "gunicorn_config.py", "--log-level=info", "--reload", "app:app"]
+COPY go.mod go.sum ./
+RUN go mod download
 
-FROM python:3.12-alpine AS production
+COPY *.go ./
 
-COPY --from=development requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+RUN go install github.com/githubnemo/CompileDaemon@latest
+RUN ls /bin
 
-COPY --from=development /app /app
+# RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping
+CMD ["CompileDaemon", "-command=./server"]
 
-RUN ls
 
-EXPOSE 5000
+FROM golang:latest AS build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY --from=development /app/*.go .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping
+CMD ["/docker-gs-ping"]
 
-WORKDIR /app
+FROM gcr.io/distroless/base-debian11 AS production
 
-CMD ["gunicorn", "--config", "gunicorn_config.py", "--log-level=info", "app:app"]
+WORKDIR /
+
+COPY --from=build /docker-gs-ping /docker-gs-ping
+
+USER nonroot:nonroot
+
+ENTRYPOINT [ "/docker-gs-ping" ]

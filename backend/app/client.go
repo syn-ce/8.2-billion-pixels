@@ -33,8 +33,8 @@ func (client *Client) writeMsgs() {
 		case json := <-client.setPixEvtJson:
 			log.Println("Client read!")
 			client.connection.WriteMessage(websocket.TextMessage, json)
-		case <- time.After(1 * time.Second):
-			//log.Println("Client waiting...")
+		case <- time.After(5 * time.Second):
+			log.Println("Client waiting...")
 		}
 	}
 }

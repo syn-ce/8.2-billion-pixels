@@ -320,7 +320,7 @@ func (m *Manager) listenForEvents() {
 				log.Println("unknown channel", msg.Channel)
 			}
 			log.Println("Read evt!")
-		case <-time.After(1 * time.Second):
+		case <-time.After(5 * time.Second):
 			log.Println("Waiting...")
 		}
 	}
@@ -332,6 +332,7 @@ type SectionConfig = struct {
 }
 
 func (m *Manager) serveSections(w http.ResponseWriter, r *http.Request) {
+	log.Println("Sections request")
 	log.Println(r.Header)
 	sectionsMeta := make([]SectionMetaData, len(m.sections))
 	for id, section := range m.sections {
@@ -354,6 +355,7 @@ type ColorChoice = struct {
 }
 
 func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
+	log.Println("Color request")
 	colorChoices := make([]ColorChoice, len(m.colorProvider.colors))
 
 	idx := 0
@@ -372,6 +374,7 @@ func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
+	log.Println("sec data req")
 	vars := mux.Vars(r)
 	log.Println("Req S", vars["secId"])
 	data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(vars["secId"])).Bytes()
