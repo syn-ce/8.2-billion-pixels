@@ -1,10 +1,10 @@
-import { Socket } from 'socket.io-client'
 import { Reticle } from './Reticle'
 import { Section } from './Section'
 import { fetchSectionsData } from './requests'
 import { addAllInteractivityToSectionCanvas } from './CanvasInteractions'
 import { ZoomSlider } from './ZoomSlider'
 import { ColorProvider } from './ColorPicker'
+import { EvtSocket, SetPixelData, SocketEvent } from './socket'
 
 export class SectionCanvas {
     canvas: HTMLCanvasElement
@@ -33,7 +33,7 @@ export class SectionCanvas {
     reticle: Reticle
     sections: Map<number, Section>
     subscribedSectionIds: Set<number>
-    socket: Socket
+    socket: EvtSocket
     frame: HTMLDivElement
     panZoomWrapper: HTMLDivElement
     zoomSlider: ZoomSlider
@@ -51,7 +51,7 @@ export class SectionCanvas {
         reticle: Reticle,
         sections: Map<number, Section>,
         subscribedSectionIds: Set<number>,
-        socket: Socket,
+        socket: EvtSocket,
         screenFrame: HTMLDivElement,
         panZoomWrapper: HTMLDivElement,
         maxZoom: number,
@@ -113,8 +113,6 @@ export class SectionCanvas {
         // Position canvas in center of screenFrame
         const screenFrameBoundRect = this.frame.getBoundingClientRect()
         const canvBoundRect = this.canvas.getBoundingClientRect()
-        console.log(screenFrameBoundRect)
-        console.log(canvBoundRect)
 
         const d = [
             screenFrameBoundRect.left +
@@ -145,27 +143,36 @@ export class SectionCanvas {
             //this.zoomScreenCoordsCheckScale(screenCenter, factor)
         })
 
-        socket.on(
-            'set-pixel',
-            (data: { sectionId: number; pixelIdx: number; color: number }) => {
-                console.log(`set-pixel: ${JSON.stringify(data)}`)
-                const section = this.sections.get(data.sectionId)!
-                section.setPixel(data.pixelIdx, data.color)
+        socket.addEvtHandler('set_pixel', (evt: SocketEvent) => {
+            const data = <SetPixelData>evt.data
+            //data: { sectionId: number; pixelIdx: number; color: number }
+            const section = this.sections.get(data.secId)!
 
-                const sectionPixel = section.sectionPixelIdxToSectionPixel(
-                    data.pixelIdx
-                )
-                const canvasPixel = this.sectionToCanvasCoords(sectionPixel)
+            const sectionPixel = section.sectionPixelIdxToSectionPixel(
+                data.pixIdx
+            )
+            const canvasPixel = this.sectionToCanvasCoords(sectionPixel)
 
-                const color = this.colorProvider.getColorById(data.color)
-                if (color === undefined) return
+            section.setPixel(data.pixIdx, data.colorId)
+            // Avoid redrawing entire section
+            this.fillRectPixel(section, canvasPixel, data.colorId)
+        })
+    }
 
-                this.ctx.fillStyle =
-                    this.colorProvider.colorToFillStyleString(color)
-
-                this.ctx.fillRect(canvasPixel[0], canvasPixel[1], 1, 1)
-            }
-        )
+    fillRectPixel = (
+        section: Section,
+        canvasPixel: [number, number],
+        colorId: number
+    ) => {
+        //section.drawOnSectionCanvas(this)
+        // Draw pixel with fillRect onto canvas to avoid drawing the entire section
+        const color = section.colorProvider.getColorById(colorId)
+        if (color == undefined)
+            throw new Error(
+                `ColorProvider was asked for unknown color: id=${colorId}`
+            )
+        this.ctx.fillStyle = section.colorProvider.colorToFillStyleString(color)
+        this.ctx.fillRect(canvasPixel[0], canvasPixel[1], 1, 1)
     }
 
     setTransform = () => {
@@ -195,21 +202,27 @@ export class SectionCanvas {
         // Set pixel in section
         section.setPixel(sectionPixelIdx, colorId)
 
+        // Avoid redrawing entire section
+        this.fillRectPixel(section, canvasPixel, colorId)
         // Redraw section onto canvas
-        section.drawOnSectionCanvas(this)
+        //section.drawOnSectionCanvas(this)
 
         // Inform server
-        this.socket.emit('set_pixel', [section.id, sectionPixelIdx, colorId])
+        this.socket.sendEvt('set_pixel', {
+            secId: section.id,
+            pixIdx: sectionPixelIdx,
+            colorId: colorId,
+        })
     }
 
     subscribeToSections = (ids: number[]) => {
         if (ids.length == 0) return
-        this.socket.emit('subscribe', ids)
+        this.socket.sendEvt('subscribe', ids)
     }
 
     unsubscribeFromSections = (ids: number[]) => {
         if (ids.length == 0) return
-        this.socket.emit('unsubscribe', ids)
+        this.socket.sendEvt('unsubscribe', ids)
     }
 
     // Returns an array of the old subscriptions

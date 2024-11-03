@@ -1,12 +1,13 @@
 import { ColorChoice } from './ColorPicker'
 import { Section, SectionAttributes } from './Section'
 
-const URL = '/api'
+//const URL = '/api'
+const URL = 'http://127.0.0.1:8030'
 
 export const fetchColorChoices = async () => {
-    const colorChoices: ColorChoice[] = await (
-        await fetch(`${URL}/colors`)
-    ).json()
+    const resp = await fetch(`${URL}/colors`)
+    const colorChoices: ColorChoice[] = await resp.json()
+
     return colorChoices.sort((a, b) => a.id - b.id)
 }
 
