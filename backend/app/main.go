@@ -45,7 +45,7 @@ func main() {
 }
 
 func initRedisFromScratch(m *Manager) {
-	m.redis.FlushAll(*m.ctx)
+	m.redis.FlushDB(*m.ctx)
 	bitsPerColor := 4
     nrCols := 5
     nrRows := 5
