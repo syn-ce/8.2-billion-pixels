@@ -40,39 +40,7 @@ services:
     #            - 'traefik.http.middlewares.bipix-strip-bipix-prefix.stripprefix.prefixes=/bipix'
     #            - 'traefik.http.routers.bipix.middlewares=bipix-strip-bipix-prefix'
 
-    #flask-app: # depends on redis, traefik
-    #    image: flask-app:prod
-    #    environment:
-    #        - FLASK_ENV=production
-    #        - LOGS_FOLDER=/app-logs
-    #    networks:
-    #        - traefik-public
-    #        - bipix-backend
-    #    labels:
-    #        # Tell Traefik to expose this container
-    #        - 'traefik.enable=true'
-    #        - 'traefik.http.routers.flask-app.rule=(Host(`bipix.${DOMAIN_NAME}`) || Host(`www.bipix.${DOMAIN_NAME}`)) && PathPrefix(`/api`)'
-    #        - 'traefik.http.routers.flask-app.service=flask-app'
-    #        - 'traefik.http.middlewares.flask-app-strip-api-prefix.stripprefix.prefixes=/api'
-    #        - 'traefik.http.routers.flask-app.middlewares=flask-app-strip-api-prefix'
-
-    #        - 'traefik.http.routers.flask-app.entrypoints=websecure'
-    #        - 'traefik.http.routers.flask-app.tls.certresolver=myresolver'
-    #        - 'traefik.http.services.flask-app.loadbalancer.server.port=5000'
-
-    #        - 'traefik.http.routers.flask-app-socket.rule=(Host(`bipix.${DOMAIN_NAME}`) || Host(`www.bipix.${DOMAIN_NAME}`)) && PathPrefix(`/socket.io`)'
-    #        - 'traefik.http.routers.flask-app-socket.service=flask-app-socket'
-
-    #        - 'traefik.http.routers.flask-app-socket.entrypoints=websecure'
-    #        - 'traefik.http.routers.flask-app-socket.tls.certresolver=myresolver'
-    #        - 'traefik.http.services.flask-app-socket.loadbalancer.server.port=5000'
-    #    deploy:
-    #        replicas: 1
-
-    #    volumes:
-    #        - flask-logs:/app-logs
-
-    go-server:
+    go-server: # depends on redis, traefik
         image: go-server:prod
         networks:
             - traefik-public
@@ -95,7 +63,7 @@ services:
             - 'traefik.http.routers.go-server-socket.tls.certresolver=myresolver'
             - 'traefik.http.services.go-server-socket.loadbalancer.server.port=5000'
 
-    nginx: # depends on flask-app, traefik
+    nginx: # depends on traefik
         image: nginx:prod
         networks:
             - traefik-public
@@ -118,7 +86,6 @@ services:
 
 volumes:
     redis-data:
-    flask-logs:
 
 networks:
     bipix-backend:

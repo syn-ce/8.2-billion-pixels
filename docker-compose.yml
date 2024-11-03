@@ -13,27 +13,6 @@ services:
         volumes:
             # So that Traefik can listen to Docker events
             - /var/run/docker.sock:/var/run/docker.sock
-    #flask-app:
-    #    depends_on:
-    #        - redis
-    #        - traefik
-    #    build:
-    #        context: ./backend
-    #        target: development
-    #    volumes:
-    #        - ./backend/app:/app
-    #        - ./backend/app-logs:/app-logs
-    #    environment:
-    #        - FLASK_ENV=development
-    #        - LOGS_FOLDER=./app-logs
-    #    labels:
-    #        # Tell Traefik to expose this container
-    #        - 'traefik.enable=true'
-    #        - 'traefik.http.routers.flask-app.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`/api`)'
-    #        - 'traefik.http.middlewares.flask-app-strip-api-prefix.stripprefix.prefixes=/api'
-    #        - 'traefik.http.routers.flask-app.middlewares=flask-app-strip-api-prefix'
-    #        - 'traefik.http.services.flask-app.loadbalancer.server.port=5000'
-    #        - 'traefik.http.routers.flask-app-socket.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`/socket.io`)'
     go-server:
         depends_on:
             - traefik

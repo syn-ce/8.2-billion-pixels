@@ -1,11 +1,4 @@
 services:
-    #flask-app:
-    #    build:
-    #        context: ./backend
-    #        target: production
-    #    environment:
-    #        - FLASK_ENV=production
-    #    image: flask-app:prod
     go-server:
         build:
             context: ./backend
