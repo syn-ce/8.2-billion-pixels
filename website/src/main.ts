@@ -23,7 +23,6 @@ window.onload = () => {
 const socket = setupSocket()
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
-console.log(canvas.getBoundingClientRect())
 
 //console.log(screen.width)
 //canvas.width = window.innerWidth //* devicePixelRatio
@@ -60,13 +59,6 @@ const sections = sectionConfig.sections.map(
             colorPicker
         )
 )
-
-const WIDTH = sections[sections.length - 1].botRight[0] // TODO: this assumes the sections to start at 0; maybe don't make this assumption
-const HEIGHT = sections[sections.length - 1].botRight[1]
-console.log(sections)
-
-console.log(WIDTH)
-console.log(HEIGHT)
 
 const zoomSlider = new ZoomSlider(
     <HTMLInputElement>document.getElementById('zoom-slider'),

@@ -36,7 +36,7 @@ def create_app():
     def handle_pubsub_set_pixel(message):
         try:
             data = json.loads(message['data'])
-            socketio.emit('set-pixel', data)
+            socketio.emit('set_pixel', data)
             logging.info(f'Processed set-pixel {message["data"]}')
         except json.JSONDecodeError:
             logging.error(f'Failed to decode message: {message["data"]}')
