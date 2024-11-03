@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -19,10 +18,6 @@ var (
 	websocketUpgrader = websocket.Upgrader{
 		ReadBufferSize: 1024,
 		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			origin := r.Header.Get("origin")
-			return origin == "http://website.localhost:9876"
-		},
 	}
 	ErrUnknownEvent = errors.New("unknown event type")
 )
@@ -325,8 +320,8 @@ func (m *Manager) listenForEvents() {
 				log.Println("unknown channel", msg.Channel)
 			}
 			log.Println("Read evt!")
-		case <-time.After(5 * time.Second):
-			log.Println("Waiting...")
+		//case <-time.After(60 * time.Second):
+		//	log.Println("Waiting...")
 		}
 	}
 }
@@ -381,6 +376,7 @@ func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
 func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(vars["secId"])).Bytes()
+	log.Println("S",vars["secId"])
 	if err != nil {
 		log.Printf("could not load section data for section %s from redis: %v\n", vars["secId"], err)
 		w.WriteHeader(500)

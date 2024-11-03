@@ -65,7 +65,6 @@ func (client *Client) writeMsgs() {
 			}
 		case <- ticker.C:
 			client.connection.SetWriteDeadline(time.Now().Add(writeWait))
-			log.Println("Pinging...")
 			if err := client.connection.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Println("could not ping client:", err)
 				return
@@ -79,7 +78,7 @@ func (client *Client) readUserMsgs() {
 
 	client.connection.SetReadLimit(int64(maxMessageSize))
 	client.connection.SetReadDeadline(time.Now().Add(pongWait))
-	client.connection.SetPongHandler(func(string) error { client.connection.SetReadDeadline(time.Now().Add(pongWait)); log.Println("Got PONG!"); return nil })
+	client.connection.SetPongHandler(func(string) error { client.connection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
 		_, payload, err := client.connection.ReadMessage()

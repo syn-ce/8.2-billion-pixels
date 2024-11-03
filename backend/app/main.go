@@ -45,6 +45,7 @@ func main() {
 }
 
 func initRedisFromScratch(m *Manager) {
+	m.redis.FlushAll(*m.ctx)
 	bitsPerColor := 4
     nrCols := 5
     nrRows := 5
@@ -69,5 +70,14 @@ func initRedisFromScratch(m *Manager) {
 	}
 	if err := m.saveSectionsMeta(); err != nil {
 		log.Println("failed to save sections meta", err)
+	}
+	initSectionData(m)
+}
+
+func initSectionData(m *Manager) {
+	for _, section := range m.sections {
+		nrPixels := (section.meta.BotRight.X - section.meta.TopLeft.X) * (section.meta.BotRight.Y - section.meta.TopLeft.Y)
+		nrBits := nrPixels * m.colorProvider.bitsPerColor
+		m.redis.SetBit(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id), int64(nrBits - 1), 0)
 	}
 }

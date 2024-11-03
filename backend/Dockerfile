@@ -15,7 +15,7 @@ CMD ["CompileDaemon", "-command=./server"]
 
 
 FROM golang:latest AS build
-COPY go.mod go.sum ./
+COPY /app/go.mod /app/go.sum ./
 RUN go mod download
 COPY --from=development /app/*.go .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping

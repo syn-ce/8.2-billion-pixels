@@ -77,10 +77,10 @@ export class Section implements SectionAttributes {
                 const colorId = this.sectionData.getPixelColorId(x, y)
                 let color = this.colorProvider!.getColorById(colorId)
                 if (color === undefined) {
-                    console.log(
+                    console.error(
                         `ColorProvider was asked for unknown color: id=${colorId}`
                     )
-                    color = this.colorProvider!.getColorById(1)
+                    color = this.colorProvider!.getColorById(0)! // Resort to "default" color
                 }
                 const idx = y * this.width + x
                 imgData.data[idx * 4 + 0] = color[0]
