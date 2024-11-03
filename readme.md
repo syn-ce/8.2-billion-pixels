@@ -6,7 +6,7 @@ Reddit's 2023 r/place consisted of 6 Million individual pixels. As of writing th
 
 Try it yourself: [click me](https://bipix.m-amthor.com)
 
-Note that this project is still **in development**. In particular, [here](#known-issues--todos)'s a list of known issues and todos that have yet to be adressed:
+Note that this project is still **in development**. In particular, [here](#known-issues--todos--ideas)'s a list of known issues, todos and ideas that are yet to be adressed / considered. Same goes for this (atm very minimal) README; I'll add to it in the process.
 
 ## Architecture
 
@@ -22,9 +22,9 @@ It is therefore natural to split the actual canvas up into logical _sections_ of
 
 A client will then fetch the whole array of data for any section which comes into view and then subscribe to it to get notified about pixels being placed in it.
 
-##### [To be continued]
+#### [To be continued]
 
-## Known Issues / TODOs
+## Known Issues / TODOs / Ideas
 
 -   [ ] When using Firefox on a mobile device, the position of the reticle will not properly match the canvas, leading to a very unsatisfying user experience. If you have an idea what could cause this, here's a [related stackoverflow post](https://stackoverflow.com/questions/79057124/canvas-content-escapes-canvas-on-mobile-in-firefox). Similarly, the reticle's outline isn't properly clipped. In other browsers and on desktop this problem does not occur.
 -   [ ] The UI sometimes gets messed up, especially on reloads. This issue arises because of the different ways in which browsers report viewport heights and is likely exacerbated by some hacky CSS.
@@ -35,3 +35,7 @@ A client will then fetch the whole array of data for any section which comes int
 -   [ ] At the moment, no dynamic updating of the database (such as number / dimensions of sections, number of bits per color) is possible.
 -   [ ] The 2-day-migration from Flask to Go leaves desirie for a cleanup.
 -   [ ] The loading times will have to improved substantially. Despite a hardware upgrade (it's currently running on a rather old, wirelessly connected specimen) one could look into compression algorithms.
+-   [ ] The client doesn't yet detect websocket-disconnects and therefore doesn't attempt to reconnect when the connection has been lost.
+-   [ ] There's no rate limiting of any kind. It would probably be advisable to implement it to some extent.
+-   [ ] In tandem with the previous point I thought about maybe implementing a programmer-friendly API to manipulate the canvas with code. This would open up a lot more possiblities and could be quite fun.
+-   [ ] The current setup is such that a single redis instance handles all traffic. Thanks to the (logical) independence of the individual sections it should be (relatively) straightforward to disperse them onto multiple instances, each handling only some of them. Of course, coordinating this will require some thinking.
