@@ -39,7 +39,7 @@ services:
             - traefik
             - redis
         build:
-            context: ./backend/app
+            context: ./backend
             target: development
         volumes:
             - ./backend/app:/app

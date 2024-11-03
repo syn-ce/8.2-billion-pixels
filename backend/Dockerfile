@@ -2,10 +2,10 @@ FROM golang:latest AS development
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY app/go.mod app/go.sum ./
 RUN go mod download
 
-COPY *.go ./
+COPY app/*.go ./
 
 RUN go install github.com/githubnemo/CompileDaemon@latest
 RUN ls /bin
