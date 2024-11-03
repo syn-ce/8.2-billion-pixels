@@ -184,7 +184,9 @@ func (m *Manager) loadFromRedis() error {
 }
 
 func (m *Manager) setPixel(setPixData SetPixelData) {
-	m.redis.SetBit(*m.ctx, setPixData.SecId, int64(setPixData.PixIdx * m.colorProvider.bitsPerColor), setPixData.ColorId)
+	t := fmt.Sprintf("u%d", m.colorProvider.bitsPerColor)
+	offset := fmt.Sprintf("#%d", setPixData.PixIdx)
+	m.redis.BitField(*m.ctx, setPixData.SecId, "set", t, offset, setPixData.ColorId)
 }
 
 func (setPixData SetPixelData) MarshalBinary() ([]byte, error) {
@@ -378,7 +380,6 @@ func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	log.Println("Req S", vars["secId"])
 	data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(vars["secId"])).Bytes()
-	//log.Println(data)
 	if err != nil {
 		log.Printf("could not load section data for section %s from redis: %v\n", vars["secId"], err)
 		w.WriteHeader(500)
