@@ -195,17 +195,15 @@ func (setPixData SetPixelData) MarshalBinary() ([]byte, error) {
 
 func (m *Manager) setupEventHandlers() {
 	m.eventHandlers[EventSetPixel] = func(e SocketEvent, c *Client) error {
-		log.Println(e)
 		var setPixData SetPixelData
 		if err := json.Unmarshal(e.Data, &setPixData); err != nil {
 			log.Println("error unmarshalling message:", err)
 			return err
 		}
 
-		log.Println("publishing")
 		err := m.redis.Publish(*m.ctx, "set_pixel", setPixData).Err()
 		if err != nil {
-			fmt.Println("could not publish set_pixel to redis:", err)
+			log.Println("could not publish set_pixel to redis:", err)
 			return err
 		}
 		// Set pixel in redis
@@ -214,29 +212,27 @@ func (m *Manager) setupEventHandlers() {
 		return nil
 	}
 	m.eventHandlers[EventSubscribe] = func(e SocketEvent, c *Client) error {
-		log.Println(e)
 		var subIds SubscribeData
 		if err := json.Unmarshal(e.Data, &subIds); err != nil {
 			log.Println("error unmarshalling message:", err)
 			return err
 		}
-		log.Println("marshalled", subIds)
 		for _, id := range subIds {
 			m.sectionSubs[id][c] = struct{}{}
+			c.subscribedSections[id] = struct{}{}
 		}
 		
 		return nil
 	}
 	m.eventHandlers[EventUnsubscribe] = func(e SocketEvent, c *Client) error {
-		log.Println(e)
 		var unsubIds UnsubscribeData
 		if err := json.Unmarshal(e.Data, &unsubIds); err != nil {
 			log.Println("error unmarshalling message:", err)
 			return err
 		}
-		log.Println("marshalled", unsubIds)
 		for _, id := range unsubIds {
 			delete(m.sectionSubs[id], c)
+			delete(c.subscribedSections, id)
 		}
 
 		return nil
@@ -254,7 +250,6 @@ func (manager *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create new client
-	log.Println("New client")
 	client := NewClient(conn, manager)
 	manager.addClient(client)
 
@@ -267,16 +262,24 @@ func (m *Manager) addClient(client *Client) {
 	defer m.Unlock()
 
 	m.clients[client] = true
+	log.Println("Nr clients:", len(m.clients))
 }
 
 func (m *Manager) removeClient(client *Client) {
 	m.Lock()
 	defer m.Unlock()
 
+	log.Println("Removing client!")
+
 	if _, ok := m.clients[client]; ok {
 		client.connection.Close()
+		close(client.setPixEvtJson)
 		delete(m.clients, client)
+		for secId := range client.subscribedSections {
+			delete(m.sectionSubs[secId], client)
+		}
 	}
+	log.Println("Nr clients:", len(m.clients))
 }
 
 func (m *Manager) routeEvent(event SocketEvent, c *Client) error {
@@ -299,7 +302,7 @@ func (m *Manager) listenForEvents() {
 		select {
 		case clientRequest := <-m.clientRequests:
 			go m.routeEvent(*clientRequest.request, clientRequest.c)
-			log.Println("Processed event (read from clientRequests)", clientRequest.request.Type)
+			log.Println("Processed client request", clientRequest.request.Type)
 		case msg := <-pubsubCh:
 			log.Println("Read evt from pubsub-queue:", msg.Payload)
 			if msg.Channel == "set_pixel" {
@@ -367,7 +370,7 @@ func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
 	}
 	colorsJson, err := json.Marshal(colorChoices)
 	if err != nil {
-		fmt.Println("could not marshal colors")
+		log.Println("could not marshal colors")
 		w.WriteHeader(500)
 		return
 	}
@@ -376,9 +379,7 @@ func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
-	log.Println("sec data req")
 	vars := mux.Vars(r)
-	log.Println("Req S", vars["secId"])
 	data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(vars["secId"])).Bytes()
 	if err != nil {
 		log.Printf("could not load section data for section %s from redis: %v\n", vars["secId"], err)
