@@ -8,6 +8,12 @@ Try it yourself: [click me](https://bipix.m-amthor.com)
 
 Note that this project is still **in development**. In particular, here's a list of known issues that have yet to be adressed:
 
+## Architecture
+
+This is the general setup. Since Traefik already proxies my server, I've decided to integrate with that and spin the services up in a Docker Swarm.
+
+![Traefik in front of a Docker Swarm, with nginx serving static content and Go (Golang) processing updates and storing data in redis, publishing events via pubsub. Diagram made using https://www.tldraw.com/](/imgs/architecture_overview_dark.png)
+
 ## Known Issues / TODO
 
 -   [ ] When using Firefox on a mobile device, the position of the reticle will not properly match the canvas, leading to a very unsatisfying user experience. If you have an idea what could cause this, here's a [related stackoverflow post](https://stackoverflow.com/questions/79057124/canvas-content-escapes-canvas-on-mobile-in-firefox). Similarly, the reticle's outline isn't properly clipped. In other browsers and on desktop this problem does not occur.
@@ -19,12 +25,6 @@ Note that this project is still **in development**. In particular, here's a list
 -   [ ] At the moment, no dynamic updating of the database (such as number / dimensions of sections, number of bits per color) is possible.
 -   [ ] The 2-day-migration from Flask to Go leaves desirie for a cleanup.
 -   [ ] The loading times will have to improved substantially. Despite a hardware upgrade (it's currently running on a rather old, wirelessly connected specimen) one could look into compression algorithms.
-
-## Architecture
-
-This is the general setup. Since Traefik already proxies my server, I've decided to integrate with that and spin the services up in a Docker Swarm.
-
-![Traefik in front of a Docker Swarm, with nginx serving static content and flask processing updates and storing data in redis, publishing events via pubsub.](/imgs/architecture_overview_dark.png)
 
 ## How to synchronize 8.2 Billion pixels
 
