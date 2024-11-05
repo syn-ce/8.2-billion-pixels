@@ -35,7 +35,7 @@ export class SectionData {
         const bitIdx = (yIdx * this.width + xIdx) * this.bitsPerPixel
         // Take bitsPerPixel bits, starting at bitIdx
 
-        for (let i = bitIdx + this.bitsPerPixel - 1; i > -1; i--) {
+        for (let i = bitIdx + this.bitsPerPixel - 1; i > bitIdx - 1; i--) {
             const byteIdx = Math.floor(bitIdx / 8)
             const bitInByteIdx = i % 8
             const bit = (colorId >> (bitIdx + this.bitsPerPixel - 1 + i)) & 1 // (this.data![byteIdx] >> (7 - bitInByteIdx)) & 1
