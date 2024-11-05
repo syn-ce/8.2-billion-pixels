@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
+	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/redis/go-redis/v9 v9.7.0
 )
 

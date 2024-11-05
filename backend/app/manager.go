@@ -373,15 +373,31 @@ func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
 	w.Write(colorsJson)
 }
 
+func (m *Manager) getCompressSectionData(secId string) ([]byte, error) {
+	data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(secId)).Bytes()
+	if err != nil {
+		log.Printf("could not load section data for section %s from redis: %v\n", secId, err)
+		return nil, err
+	}
+	compressed, err := compress(data)
+	if err != nil {
+		log.Printf("could not compress section data for section %s from redis: %v\n", secId, err)
+		return nil, err
+	}
+
+	return compressed, nil
+}
+
 func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(vars["secId"])).Bytes()
 	log.Println("S",vars["secId"])
+
+	data, err := m.getCompressSectionData(vars["secId"])
 	if err != nil {
-		log.Printf("could not load section data for section %s from redis: %v\n", vars["secId"], err)
 		w.WriteHeader(500)
 		return
 	}
+	
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }

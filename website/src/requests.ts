@@ -1,3 +1,4 @@
+import { decompress } from 'lz4js'
 import { ColorChoice } from './ColorPicker'
 import { Section, SectionAttributes } from './Section'
 
@@ -24,7 +25,7 @@ export const fetchSectionData = async (sectionId: number) => {
         await fetch(`${URL}/section-data/${sectionId}`)
     ).arrayBuffer()
 
-    const bytes = new Uint8Array(buffer)
+    const bytes = decompress(new Uint8Array(buffer))
     return bytes
 }
 
