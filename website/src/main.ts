@@ -156,10 +156,5 @@ sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
     initPlacePixelCoordsEl.innerText = `(${sectionPixel}) ${zoomLevel}x`
 })
 
-// TODO: Fix this, this is horrible
-setTimeout(() => {
-    sectionCanvas.centerSectionCoords([0, 0])
-    sectionCanvas.updateCanvas()
-}, 100)
-
+sectionCanvas.centerSectionCoords([0, 0])
 sectionCanvas.updateCanvas()
