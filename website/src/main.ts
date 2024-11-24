@@ -50,6 +50,14 @@ const sectionConfig: {
     bitsPerPixel: number
 } = await fetchSectionsConfig()
 
+// Once section config has been loaded, remove loader
+const removeLoader = () => {
+    const loaderWrapper = document.getElementById('loader-wrapper')!
+    loaderWrapper.remove()
+}
+
+removeLoader()
+
 const sections = sectionConfig.sections.map(
     (sectionAttrs) =>
         new Section(
