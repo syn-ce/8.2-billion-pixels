@@ -10,6 +10,7 @@ import { ZoomSlider } from './ZoomSlider'
 // Allow transitions after pageload
 window.onload = () => {
     document.body.classList.remove('prevent-transition-before-pageload')
+    document.body.style.visibility = 'visible'
     const screenFrame = <HTMLDivElement>document.getElementById('screen-frame')
 
     screenFrame.style.width = `100dvw`
