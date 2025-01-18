@@ -231,6 +231,8 @@ export class SectionCanvas {
 
     unsubscribeFromSections = (ids: number[]) => {
         if (ids.length == 0) return
+        // Tell section that it has to refetch its data if it's asked to draw again
+        ids.forEach((id) => this.sections.get(id)!.resetImageData())
         this.socket.sendEvt('unsubscribe', ids)
     }
 
@@ -321,6 +323,7 @@ export class SectionCanvas {
             60, 60, 60,
         ])
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+
         // Draw remaining old ones
         oldRemainingIds.forEach((sectionId) => {
             const section = this.sections.get(sectionId)!
@@ -328,9 +331,8 @@ export class SectionCanvas {
         })
 
         // Fetch data of newly added ones
-        fetchSectionsData(
-            Array.from(newlyAddedIds).map((id) => this.sections.get(id)!),
-            (section) => section.drawOnSectionCanvas(this)
+        newlyAddedIds.forEach((sectionId) =>
+            this.sections.get(sectionId)!.drawOnSectionCanvas(this)
         )
     }
 

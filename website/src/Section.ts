@@ -1,6 +1,7 @@
 import { SectionData } from './SectionData'
 import { ColorProvider } from './ColorPicker'
 import { SectionCanvas } from './SectionCanvas'
+import { fetchSectionData } from './requests'
 
 export interface SectionAttributes {
     topLeft: [number, number]
@@ -16,7 +17,7 @@ export class Section implements SectionAttributes {
     height: number
     id: number
     bitsPerPixel: number
-    imgData: ImageData | undefined
+    imgData: ImageData | null
     colorProvider: ColorProvider
 
     constructor(
@@ -33,7 +34,7 @@ export class Section implements SectionAttributes {
         this.height = this.botRight[1] - this.topLeft[1]
         this.bitsPerPixel = bitsPerPixel
         this.colorProvider = colorProvider
-        this.imgData = undefined // Empty default
+        this.imgData = null // Empty default
 
         this.sectionData = new SectionData(
             undefined,
@@ -58,10 +59,25 @@ export class Section implements SectionAttributes {
         return [x + this.topLeft[0], y + this.topLeft[1]]
     }
 
-    drawOnSectionCanvas = (sectionCanvas: SectionCanvas) => {
+    // Maybe allow to manage multiple canvases and only set to null if all of them unsubscribe (?)
+    // TODO: maybe rethink who manages updates etc
+    resetImageData = () => {
+        this.imgData = null
+    }
+
+    getImageData = async (): Promise<ImageData> => {
+        if (this.imgData == null) {
+            // fetch if required
+            this.setData(await fetchSectionData(this.id))
+        }
+        return this.imgData!
+    }
+
+    // Tell it to draw itself; If required, fetches data
+    drawOnSectionCanvas = async (sectionCanvas: SectionCanvas) => {
         const canvasPixel = sectionCanvas.sectionToCanvasCoords(this.topLeft)
         sectionCanvas.ctx.putImageData(
-            this.imgData!,
+            await this.getImageData(),
             canvasPixel[0],
             canvasPixel[1]
         )
