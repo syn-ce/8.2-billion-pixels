@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -132,7 +133,16 @@ func (m *Manager) saveColorProvider() error {
 func NewManager(redisOptions *redis.Options) (*Manager, error) {
 	rdb := redis.NewClient(redisOptions)
 
+
 	ctx := context.Background()
+
+	for err := rdb.Ping(ctx).Err(); err != nil; {
+		log.Println("Can't connect to redis. Retrying in 2 seconds...: ", err)
+		rdb.Close()
+		time.Sleep(2 * time.Second)
+		rdb = redis.NewClient(redisOptions)
+	}
+	log.Println("Successfully connected to redis.")
 
 	m := &Manager{
 		clients: make(ClientList),

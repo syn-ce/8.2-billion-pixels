@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -27,7 +28,11 @@ func setupAPI() (*mux.Router, error) {
 	r.HandleFunc("/section-data/{secId}", manager.serveSectionData)
 	
 	//initRedisFromScratch(manager)
-	manager.loadFromRedis()
+	for err := manager.loadFromRedis(); err != nil; {
+		log.Println("Can't load data from redis. Retrying in 2 seconds...")
+		time.Sleep(2 * time.Second)
+	}
+	log.Println("Successfully loaded data from redis.")
 
 	go manager.listenForEvents()
 
