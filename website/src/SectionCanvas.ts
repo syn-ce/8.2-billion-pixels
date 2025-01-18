@@ -30,6 +30,7 @@ export class SectionCanvas {
     canvasDefaultOffset: [number, number]
     offset: [number, number]
     contentOffset: [number, number]
+    sectionLeaveBufferSize: [number, number]
     reticle: Reticle
     sections: Map<number, Section>
     subscribedSectionIds: Set<number>
@@ -105,6 +106,14 @@ export class SectionCanvas {
 
         this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2
         this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2
+
+        // The buffer for unsubscribing from sections which go out of range (used to prevent
+        // (too early/frequent) unsubscribing from sections when they are only slighly outside
+        // the canvas and might reenter immediately afterwards)
+        this.sectionLeaveBufferSize = [
+            Math.max(300, widthBufferSize),
+            Math.max(300, heightBufferSize),
+        ]
 
         this.canvRetWrapper = canvRetWrapper
         canvRetWrapper.style.transform = `scale(${this.maxZoom})`
@@ -226,12 +235,15 @@ export class SectionCanvas {
     }
 
     // Returns an array of the old subscriptions
-    updateSectionsSubscriptions = (requiredSections: Set<number>) => {
+    updateSectionsSubscriptions = (
+        idsToSubscribeTo: Set<number>,
+        idsToNotUnsubscribe: Set<number>
+    ) => {
         const curSections = this.subscribedSectionIds
         const sectionIdsToRemove: Set<number> = new Set()
         // Remove sections which are no longer needed
         for (const id of curSections) {
-            if (!requiredSections.has(id)) {
+            if (!idsToNotUnsubscribe.has(id)) {
                 sectionIdsToRemove.add(id) // Mark section to be removed
             }
         }
@@ -244,7 +256,7 @@ export class SectionCanvas {
 
         // Add new sections
         const sectionIdsToAdd: Set<number> = new Set()
-        for (const id of requiredSections) {
+        for (const id of idsToSubscribeTo) {
             if (!curSections.has(id)) {
                 sectionIdsToAdd.add(id)
                 curSections.add(id)
@@ -256,15 +268,14 @@ export class SectionCanvas {
         return [sectionIdsToAdd, oldRemainingIds]
     }
 
-    determineRequiredSections = () => {
+    determineRequiredSections = (bufferSize: [number, number]) => {
         // We can simply determine whether the section intersects with the canvas.
         // For further optimization (taking zoom into account) we could then also test which part of the canvas is actually displayed on screen.
         // A contentOffset of [-100, -150] means that the content will be moved 100 to the left and 150 to the top of the screen,
-        // effectively moving the area which is visible 100 to the right and 150 to the bottom of the screen
-        const sectionBufferSize = [0, 0]
+        // effectively moving into view the area which is 100 to the right and 150 to the bottom of the screen
         const contentTopLeft = [
-            -this.contentOffset[0] - sectionBufferSize[0],
-            -this.contentOffset[1] - sectionBufferSize[1],
+            -this.contentOffset[0] - bufferSize[0],
+            -this.contentOffset[1] - bufferSize[1],
         ]
 
         const reqSectionsIds: Set<number> = new Set()
@@ -272,14 +283,12 @@ export class SectionCanvas {
             // TODO: verify that <= is correct (and not <)
             if (
                 contentTopLeft[0] <=
-                    section.topLeft[0] + section.width + sectionBufferSize[0] &&
-                contentTopLeft[0] + this.canvas.width + sectionBufferSize[0] >=
+                    section.topLeft[0] + section.width + bufferSize[0] &&
+                contentTopLeft[0] + this.canvas.width + bufferSize[0] >=
                     section.topLeft[0] &&
                 contentTopLeft[1] <=
-                    section.topLeft[1] +
-                        section.height +
-                        sectionBufferSize[1] &&
-                contentTopLeft[1] + this.canvas.height + sectionBufferSize[1] >=
+                    section.topLeft[1] + section.height + bufferSize[1] &&
+                contentTopLeft[1] + this.canvas.height + bufferSize[1] >=
                     section.topLeft[1]
             ) {
                 reqSectionsIds.add(id)
@@ -293,11 +302,19 @@ export class SectionCanvas {
 
     // TODO: panning is a bit janky because of aliasing
     drawSections = async () => {
-        // Filter sections which should not be active
-        const requiredSectionsIds = this.determineRequiredSections()
+        // Sections which, if not already done, should be subscribed to
+        const sectionsToSubscribeTo = this.determineRequiredSections([0, 0])
+        // Sections which, if they are already subscribed to, should not be
+        // unsubscribed from (prevents too frequent resubscribing)
+        const sectionsToNotUnsubscribe = this.determineRequiredSections(
+            this.sectionLeaveBufferSize
+        )
 
         const [newlyAddedIds, oldRemainingIds] =
-            this.updateSectionsSubscriptions(requiredSectionsIds)
+            this.updateSectionsSubscriptions(
+                sectionsToSubscribeTo,
+                sectionsToNotUnsubscribe
+            )
 
         //this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
         this.ctx.fillStyle = this.colorProvider.colorToFillStyleString([
