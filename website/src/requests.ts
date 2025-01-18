@@ -1,6 +1,6 @@
 import { decompress } from 'lz4js'
 import { ColorChoice } from './ColorPicker'
-import { Section, SectionAttributes } from './Section'
+import { SectionAttributes } from './Section'
 
 const URL = '/api'
 
@@ -27,19 +27,4 @@ export const fetchSectionData = async (sectionId: number) => {
 
     const bytes = decompress(new Uint8Array(buffer))
     return bytes
-}
-
-export const fetchSectionsData = async (
-    sections: Section[],
-    callback: (section: Section) => void
-) => {
-    return Promise.all(
-        Array.from(
-            sections.map(async (section) => {
-                const data = await fetchSectionData(section.id)
-                section.setData(data)
-                callback(section)
-            })
-        )
-    )
 }

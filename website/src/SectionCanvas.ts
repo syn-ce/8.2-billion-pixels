@@ -1,6 +1,5 @@
 import { Reticle } from './Reticle'
 import { Section } from './Section'
-import { fetchSectionsData } from './requests'
 import { addAllInteractivityToSectionCanvas } from './CanvasInteractions'
 import { ZoomSlider } from './ZoomSlider'
 import { ColorProvider } from './ColorPicker'
