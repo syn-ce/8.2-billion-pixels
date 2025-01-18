@@ -272,7 +272,6 @@ func (m *Manager) removeClient(client *Client) {
 
 	log.Println("Removing client!")
 
-	m.Lock()
 	if _, ok := m.clients[client]; ok {
 		client.connection.Close()
 		close(client.setPixEvtJson)
@@ -281,7 +280,6 @@ func (m *Manager) removeClient(client *Client) {
 			delete(m.sectionSubs[secId], client)
 		}
 	}
-	m.Unlock()
 	log.Println("Nr clients:", len(m.clients))
 }
 
