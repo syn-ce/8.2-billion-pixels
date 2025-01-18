@@ -236,7 +236,7 @@ export class SectionCanvas {
         this.socket.sendEvt('unsubscribe', ids)
     }
 
-    // Returns an array of the old subscriptions
+    // Subscribes to new ones, unsubscribes from ones which are not needed anymore
     updateSectionsSubscriptions = (
         idsToSubscribeTo: Set<number>,
         idsToNotUnsubscribe: Set<number>
@@ -254,8 +254,6 @@ export class SectionCanvas {
         sectionIdsToRemove.forEach((id) => curSections.delete(id))
         this.unsubscribeFromSections(Array.from(sectionIdsToRemove))
 
-        const oldRemainingIds = new Set(curSections)
-
         // Add new sections
         const sectionIdsToAdd: Set<number> = new Set()
         for (const id of idsToSubscribeTo) {
@@ -267,7 +265,6 @@ export class SectionCanvas {
         console.log(`Add ${sectionIdsToAdd.size} sections`)
         this.subscribeToSections(Array.from(sectionIdsToAdd))
         this.subscribedSectionIds = curSections
-        return [sectionIdsToAdd, oldRemainingIds]
     }
 
     determineRequiredSections = (bufferSize: [number, number]) => {
@@ -312,11 +309,10 @@ export class SectionCanvas {
             this.sectionLeaveBufferSize
         )
 
-        const [newlyAddedIds, oldRemainingIds] =
-            this.updateSectionsSubscriptions(
-                sectionsToSubscribeTo,
-                sectionsToNotUnsubscribe
-            )
+        this.updateSectionsSubscriptions(
+            sectionsToSubscribeTo,
+            sectionsToNotUnsubscribe
+        )
 
         //this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
         this.ctx.fillStyle = this.colorProvider.colorToFillStyleString([
@@ -324,16 +320,11 @@ export class SectionCanvas {
         ])
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
-        // Draw remaining old ones
-        oldRemainingIds.forEach((sectionId) => {
+        // Draw all sections which are visible
+        sectionsToSubscribeTo.forEach((sectionId) => {
             const section = this.sections.get(sectionId)!
             section.drawOnSectionCanvas(this)
         })
-
-        // Fetch data of newly added ones
-        newlyAddedIds.forEach((sectionId) =>
-            this.sections.get(sectionId)!.drawOnSectionCanvas(this)
-        )
     }
 
     // TODO: store edges when updating active sections and remove this function
