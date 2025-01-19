@@ -33,7 +33,7 @@ A client will then fetch the whole array of data for any section which comes int
 -   [ ] The zoom levels are restricted to whole integers. Especially on mobile this can feel awkward. Fixing this should be straightforward (it was initially introduced to avoid fractional offsets; working with exact values in the background and rounding them to, say, 2 decimals when applying should have potential to work)
 -   [ ] Currently there's no manual synchronization happening. Instead, both the server and the client rely on events arriving in the order in which they were dispatched. Since this is not guaranteed (especially considering the variety in latencies from clients to the server), adding timestamps to the events will be necessary.
 -   [ ] At the moment, no dynamic updating of the database (such as number / dimensions of sections, number of bits per color) is possible.
--   [ ] The 2-day-migration from Flask to Go leaves desirie for a cleanup.
+-   [ ] The 2-day-migration from Flask to Go leaves desire for a cleanup.
 -   [ ] The loading times will have to be improved substantially. Despite a hardware upgrade (it's currently running on a rather old, wirelessly connected specimen) one could look into compression algorithms (Update: Now using basic [LZ4 compression](https://github.com/lz4/lz4) for the section data as a first step in this direction).
 -   [ ] The client doesn't yet detect websocket-disconnects and therefore doesn't attempt to reconnect when the connection has been lost.
 -   [ ] There's no rate limiting of any kind. It would probably be advisable to implement it to some extent.
