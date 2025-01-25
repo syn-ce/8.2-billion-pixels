@@ -471,3 +471,15 @@ func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
+
+// TODO: worry about hashing and stuff
+func (m *Manager) LoadUser(username string) (User, error) {
+	var user User
+	cmdReturn := m.redis.HGetAll(*m.ctx, fmt.Sprintf("user:%s", username))
+
+	if err := cmdReturn.Scan(&user); err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}

@@ -18,11 +18,6 @@ import (
 // os.Getenv will return an empty string. This feels a bit sketchy -> Look into this again.
 var secretKey = []byte(os.Getenv("JWT_SECRET"))
 
-type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func CreateToken(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
@@ -53,18 +48,20 @@ func verifyToken(tokenString string) error {
 	return nil
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request, m *Manager) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	var u User
 	json.NewDecoder(r.Body).Decode(&u)
-	log.Printf("The user request value %v", u)
+	log.Printf("user trying to log in: '%s' '%s'", u.Username, u.Password)
 
-	if u.Username == "Check" && u.Password == "123456" {
+	userInDb, err := m.LoadUser(u.Username)
+
+	if err == nil && u.Username == userInDb.Username && u.Password == userInDb.Password {
 		tokenString, err := CreateToken(u.Username)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Errorf("No username found")
+			fmt.Errorf("Could not create token for username %s", u.Username)
 		}
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, tokenString)
