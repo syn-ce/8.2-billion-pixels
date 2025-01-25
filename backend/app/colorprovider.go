@@ -23,8 +23,8 @@ func FromColor(c color.Color) *Color {
 
 type ColorProvider struct {
 	bitsPerColor int
-	colors map[int]*Color
-	idHeap IntHeap
+	colors       map[int]*Color
+	idHeap       IntHeap
 }
 
 func NewColorProvider(bitsPerColor int, colors ...*Color) *ColorProvider {
@@ -42,8 +42,8 @@ func NewColorProvider(bitsPerColor int, colors ...*Color) *ColorProvider {
 }
 
 func (cp *ColorProvider) addColor(c *Color) error {
-	if len(cp.colors) == 1 << cp.bitsPerColor {
-		return fmt.Errorf("can't add more than %d colors to colorprovider with %d bits per color", 1 << cp.bitsPerColor, cp.bitsPerColor)
+	if len(cp.colors) == 1<<cp.bitsPerColor {
+		return fmt.Errorf("can't add more than %d colors to colorprovider with %d bits per color", 1<<cp.bitsPerColor, cp.bitsPerColor)
 	}
 
 	id := len(cp.colors)

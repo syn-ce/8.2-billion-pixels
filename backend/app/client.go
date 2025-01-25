@@ -24,19 +24,19 @@ var (
 )
 
 type Client struct {
-	connection *websocket.Conn
-	manager *Manager
-	setPixEvtJson chan []byte
+	connection         *websocket.Conn
+	manager            *Manager
+	setPixEvtJson      chan []byte
 	subscribedSections map[string]struct{}
 }
 
-type ClientList map[*Client] bool
+type ClientList map[*Client]bool
 
 func NewClient(conn *websocket.Conn, m *Manager) *Client {
 	return &Client{
-		connection: conn,
-		manager: m,
-		setPixEvtJson: make(chan []byte),
+		connection:         conn,
+		manager:            m,
+		setPixEvtJson:      make(chan []byte),
 		subscribedSections: make(map[string]struct{}),
 	}
 }
@@ -63,7 +63,7 @@ func (client *Client) writeMsgs() {
 			if err := client.connection.WriteMessage(websocket.TextMessage, json); err != nil {
 				log.Println("could not write message to client:", err)
 			}
-		case <- ticker.C:
+		case <-ticker.C:
 			client.connection.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := client.connection.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Println("could not ping client:", err)
@@ -89,10 +89,10 @@ func (client *Client) readUserMsgs() {
 			break
 		}
 		//sectionId, pixelIdx, color = data
-  //      bitfield = redis.bitfield(sectionId)
-  //      bitfield.set(f'u{bits_per_color}', f'#{pixelIdx}', color)
-  //      bitfield.execute()
-  //      redis.publish('set_pixel_channel', message=json.dumps({'sectionId': sectionId, 'pixelIdx': pixelIdx, 'color': color}))
+		//      bitfield = redis.bitfield(sectionId)
+		//      bitfield.set(f'u{bits_per_color}', f'#{pixelIdx}', color)
+		//      bitfield.execute()
+		//      redis.publish('set_pixel_channel', message=json.dumps({'sectionId': sectionId, 'pixelIdx': pixelIdx, 'color': color}))
 
 		// Marshal data into Event
 		var request SocketEvent

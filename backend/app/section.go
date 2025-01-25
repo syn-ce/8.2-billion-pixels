@@ -18,12 +18,12 @@ func NewPoint(x, y int) *Point {
 }
 
 type SectionMetaData struct {
-	TopLeft Point `json:"topLeft"`
-	BotRight Point `json:"botRight"`
-	Id string `json:"id"`
+	TopLeft  Point  `json:"topLeft"`
+	BotRight Point  `json:"botRight"`
+	Id       string `json:"id"`
 }
 
-type Section struct{
+type Section struct {
 	meta SectionMetaData
 	data *string
 }
@@ -34,12 +34,12 @@ func NewSection(meta *SectionMetaData, data *string) *Section {
 
 // TODO: Properly think about how to approach the ids - in case of an expansion, the current approach would rename some sections
 func splitIntoSections(startTopLeft Point, sectionW, sectionH, rows, cols int) []*Section {
-	sections := make([]*Section, rows * cols)
+	sections := make([]*Section, rows*cols)
 	for row := range rows {
 		for col := range cols {
-			topLeft := NewPoint(col * sectionW + startTopLeft.X, row * sectionH + startTopLeft.Y)
-			botRight := NewPoint((col + 1) * sectionW + startTopLeft.X, (row + 1) * sectionH + startTopLeft.Y)
-			id := row * cols + col
+			topLeft := NewPoint(col*sectionW+startTopLeft.X, row*sectionH+startTopLeft.Y)
+			botRight := NewPoint((col+1)*sectionW+startTopLeft.X, (row+1)*sectionH+startTopLeft.Y)
+			id := row*cols + col
 			sections[id] = NewSection(&SectionMetaData{*topLeft, *botRight, strconv.Itoa(id)}, nil)
 		}
 	}

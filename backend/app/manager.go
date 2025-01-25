@@ -18,30 +18,28 @@ import (
 
 var (
 	websocketUpgrader = websocket.Upgrader{
-		ReadBufferSize: 1024,
+		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 	ErrUnknownEvent = errors.New("unknown event type")
 )
 
-
-
 type ClientRequest struct {
-	c *Client
+	c       *Client
 	request *SocketEvent
 }
 
 type Manager struct {
 	sync.RWMutex
-	clients ClientList
+	clients        ClientList
 	clientRequests chan ClientRequest
-	eventHandlers map[string]EventHandler
-	redis *redis.Client
-	pubsub *redis.PubSub
-	ctx *context.Context
-	sectionSubs map[string]map[*Client]struct{}
-	sections []*Section
-	colorProvider *ColorProvider
+	eventHandlers  map[string]EventHandler
+	redis          *redis.Client
+	pubsub         *redis.PubSub
+	ctx            *context.Context
+	sectionSubs    map[string]map[*Client]struct{}
+	sections       []*Section
+	colorProvider  *ColorProvider
 }
 
 func (m *Manager) loadSectionsMeta() error {
@@ -127,13 +125,12 @@ func (m *Manager) saveColorProvider() error {
 		}
 		m.redis.SAdd(*m.ctx, REDIS_KEYS.COLOR_SET, bytes)
 	}
-	
+
 	return nil
 }
 
 func NewManager(redisOptions *redis.Options) (*Manager, error) {
 	rdb := redis.NewClient(redisOptions)
-
 
 	ctx := context.Background()
 
@@ -146,30 +143,30 @@ func NewManager(redisOptions *redis.Options) (*Manager, error) {
 	log.Println("Successfully connected to redis.")
 
 	m := &Manager{
-		clients: make(ClientList),
+		clients:        make(ClientList),
 		clientRequests: make(chan ClientRequest, 1),
-		eventHandlers: make(map[string]EventHandler),
-		redis: rdb,
-		ctx: &ctx,
-		sectionSubs: make(map[string]map[*Client]struct{}),
+		eventHandlers:  make(map[string]EventHandler),
+		redis:          rdb,
+		ctx:            &ctx,
+		sectionSubs:    make(map[string]map[*Client]struct{}),
 	}
 
 	m.pubsub = m.redis.Subscribe(*m.ctx, "set_pixel")
 
-//def load_sections(redis: Redis):
-//    sec_ids = [int(sec_id) for sec_id in redis.smembers(RedisKeys.SEC_IDS)]
-//    return [Section.from_bytes(redis.get(RedisKeys.sec_info(sec_id))) for sec_id in sec_ids]
+	//def load_sections(redis: Redis):
+	//    sec_ids = [int(sec_id) for sec_id in redis.smembers(RedisKeys.SEC_IDS)]
+	//    return [Section.from_bytes(redis.get(RedisKeys.sec_info(sec_id))) for sec_id in sec_ids]
 
-//	bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
-//
-//    color_provider = ColorProvider(bits_per_color, [])
-//    colorset = redis.smembers(RedisKeys.COLOR_SET)
-//    color_provider.add_colors_from_bytes(colorset)
-//    colors_json = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
-//
-//    #sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
-//    sections = load_sections(redis)
-//    sections_json = [section.to_json() for section in sections]
+	//	bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
+	//
+	//    color_provider = ColorProvider(bits_per_color, [])
+	//    colorset = redis.smembers(RedisKeys.COLOR_SET)
+	//    color_provider.add_colors_from_bytes(colorset)
+	//    colors_json = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
+	//
+	//    #sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
+	//    sections = load_sections(redis)
+	//    sections_json = [section.to_json() for section in sections]
 
 	m.setupEventHandlers()
 	return m, nil
@@ -272,7 +269,7 @@ func (m *Manager) setupEventHandlers() {
 		}
 		// Set pixel in redis
 		m.setPixel(setPixData)
-		
+
 		return nil
 	}
 	m.eventHandlers[EventSubscribe] = func(e SocketEvent, c *Client) error {
@@ -288,7 +285,7 @@ func (m *Manager) setupEventHandlers() {
 			c.subscribedSections[id] = struct{}{}
 		}
 		m.Unlock()
-		
+
 		return nil
 	}
 	m.eventHandlers[EventUnsubscribe] = func(e SocketEvent, c *Client) error {
@@ -308,7 +305,6 @@ func (m *Manager) setupEventHandlers() {
 		return nil
 	}
 }
-
 
 func (manager *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 	log.Println("New connection")
@@ -364,7 +360,6 @@ func (m *Manager) routeEvent(event SocketEvent, c *Client) error {
 	}
 }
 
-
 // Establishes the connection to redis and sets up the event processing loop
 func (m *Manager) listenForEvents() {
 	pubsubCh := m.pubsub.Channel()
@@ -395,15 +390,15 @@ func (m *Manager) listenForEvents() {
 				log.Println("unknown channel", msg.Channel)
 			}
 			log.Println("Read evt!")
-		//case <-time.After(60 * time.Second):
-		//	log.Println("Waiting...")
+			//case <-time.After(60 * time.Second):
+			//	log.Println("Waiting...")
 		}
 	}
 }
 
 type SectionConfig = struct {
-	Sections []SectionMetaData `json:"sections"`
-	BitsPerPixel int `json:"bitsPerPixel"`
+	Sections     []SectionMetaData `json:"sections"`
+	BitsPerPixel int               `json:"bitsPerPixel"`
 }
 
 func (m *Manager) serveSections(w http.ResponseWriter, r *http.Request) {
@@ -425,7 +420,7 @@ func (m *Manager) serveSections(w http.ResponseWriter, r *http.Request) {
 }
 
 type ColorChoice = struct {
-	Id int `json:"id"`
+	Id  int   `json:"id"`
 	Rgb []int `json:"rgb"`
 }
 
@@ -465,14 +460,14 @@ func (m *Manager) getCompressSectionData(secId string) ([]byte, error) {
 
 func (m *Manager) serveSectionData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	log.Println("S",vars["secId"])
+	log.Println("S", vars["secId"])
 
 	data, err := m.getCompressSectionData(vars["secId"])
 	if err != nil {
 		w.WriteHeader(500)
 		return
 	}
-	
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }

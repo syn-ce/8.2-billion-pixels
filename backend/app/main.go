@@ -12,10 +12,10 @@ import (
 
 func setupAPI() (*mux.Router, error) {
 	manager, err := NewManager(&redis.Options{
-		Addr: "redis:6379",
+		Addr:     "redis:6379",
 		Password: "",
-		DB: 0,
-	})	
+		DB:       0,
+	})
 	if err != nil {
 		log.Println("failed to create manager", err)
 		return nil, err
@@ -56,17 +56,17 @@ func main() {
 func initRedisFromScratch(m *Manager) {
 	m.redis.FlushDB(*m.ctx)
 	bitsPerColor := 4
-    nrCols := 5
-    nrRows := 5
-    secWidth := 1000
-    secHeight := 1000
-    totalWidth := secWidth * nrCols
-    totalHeight := secHeight * nrRows
-    startTopLeft := NewPoint(int(-math.Floor(float64(totalWidth) / 2.0)), int(-math.Floor(float64(totalHeight) / 2.0)))
-    colors := []*Color{NewColor(255, 255, 255), NewColor(0, 0, 0), NewColor(247, 174, 248), NewColor(179, 136, 235), 
-              NewColor(128, 147, 241), NewColor(114, 221, 247), NewColor(244, 244, 237), NewColor(219, 207, 176), 
-              NewColor(115, 171, 132)}
-    
+	nrCols := 5
+	nrRows := 5
+	secWidth := 1000
+	secHeight := 1000
+	totalWidth := secWidth * nrCols
+	totalHeight := secHeight * nrRows
+	startTopLeft := NewPoint(int(-math.Floor(float64(totalWidth)/2.0)), int(-math.Floor(float64(totalHeight)/2.0)))
+	colors := []*Color{NewColor(255, 255, 255), NewColor(0, 0, 0), NewColor(247, 174, 248), NewColor(179, 136, 235),
+		NewColor(128, 147, 241), NewColor(114, 221, 247), NewColor(244, 244, 237), NewColor(219, 207, 176),
+		NewColor(115, 171, 132)}
+
 	colorProvider := NewColorProvider(bitsPerColor, colors...)
 	sections := splitIntoSections(*startTopLeft, secWidth, secHeight, nrRows, nrCols)
 	log.Printf("%d sections\n", len(sections))
@@ -87,6 +87,6 @@ func initSectionData(m *Manager) {
 	for _, section := range m.sections {
 		nrPixels := (section.meta.BotRight.X - section.meta.TopLeft.X) * (section.meta.BotRight.Y - section.meta.TopLeft.Y)
 		nrBits := nrPixels * m.colorProvider.bitsPerColor
-		m.redis.SetBit(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id), int64(nrBits - 1), 0)
+		m.redis.SetBit(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id), int64(nrBits-1), 0)
 	}
 }
