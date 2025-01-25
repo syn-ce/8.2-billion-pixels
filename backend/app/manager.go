@@ -186,6 +186,7 @@ func (m *Manager) loadFromRedis() error {
 	return nil
 }
 
+// TODO: worry about performance (set row-wise / pipe requests?)
 func (m *Manager) setPixelsInSection(secMeta SectionMetaData, secX, secY, w, h int, img image.Image, imgX int, imgY int) error {
 	// set row by row
 	secWidth := secMeta.BotRight.X - secMeta.TopLeft.X
