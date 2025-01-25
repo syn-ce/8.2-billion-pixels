@@ -26,7 +26,11 @@ func setupAPI() (*mux.Router, error) {
 	r.HandleFunc("/colors", manager.serveColors)
 	r.HandleFunc("/sections", manager.serveSections)
 	r.HandleFunc("/section-data/{secId}", manager.serveSectionData)
-	
+	r.HandleFunc("/auth", LoginHandler)
+	r.HandleFunc("/load-img", func(w http.ResponseWriter, r *http.Request) {
+		AuthorizedHandler(w, r, manager, LoadImg)
+	})
+
 	//initRedisFromScratch(manager)
 	for err := manager.loadFromRedis(); err != nil; {
 		log.Println("Can't load data from redis. Retrying in 2 seconds...")

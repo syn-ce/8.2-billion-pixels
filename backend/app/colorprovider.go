@@ -3,7 +3,9 @@ package main
 import (
 	"container/heap"
 	"fmt"
+	"image/color"
 	"log"
+	"math"
 )
 
 type Color struct {
@@ -12,6 +14,11 @@ type Color struct {
 
 func NewColor(r, g, b byte) *Color {
 	return &Color{r, g, b}
+}
+
+func FromColor(c color.Color) *Color {
+	r, g, b, _ := c.RGBA()
+	return NewColor(byte(r), byte(g), byte(b))
 }
 
 type ColorProvider struct {
@@ -50,6 +57,22 @@ func (cp *ColorProvider) addColor(c *Color) error {
 	return nil
 }
 
+func (cp *ColorProvider) ClosestAvailableColor(c *Color) (int, error) {
+	if len(cp.colors) == 0 {
+		return -1, fmt.Errorf("colorprovider can't determine color closest to %+v because colorprovider doesn't have any colors", *c)
+	}
+	minDistance := math.MaxInt
+	var minColorId int
+	for id, color := range cp.colors {
+		distance := IntPow(int(c.R)-int(color.R), 2) + IntPow(int(c.G)-int(color.G), 2) + IntPow(int(c.B)-int(color.B), 2)
+		if distance < minDistance {
+			minDistance = distance
+			minColorId = id
+		}
+	}
+
+	return minColorId, nil
+}
 
 // https://pkg.go.dev/container/heap
 // An IntHeap is a min-heap of ints.

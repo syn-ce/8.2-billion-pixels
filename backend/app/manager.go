@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
 	"log"
 	"net/http"
 	"sync"
@@ -186,6 +187,64 @@ func (m *Manager) loadFromRedis() error {
 	}
 
 	return nil
+}
+
+func (m *Manager) setPixelsInSection(secMeta SectionMetaData, secX, secY, w, h int, img image.Image, imgX int, imgY int) error {
+	// set row by row
+	secWidth := secMeta.BotRight.X - secMeta.TopLeft.X
+	log.Printf("dimensions: %dx%d=%d", w, h, w*h)
+	for row := range h {
+		// Slice into image
+		for col := range w {
+			color := img.At(imgX+col, imgY+row)
+			// Translate into closest available color
+			colorIdToUse, err := m.colorProvider.ClosestAvailableColor(FromColor(color))
+			//fmt.Println(colorIdToUse)
+			if err != nil {
+				return err
+			}
+			m.setPixel(SetPixelData{SecId: secMeta.Id, PixIdx: (secY+row)*secWidth + (secX + col), ColorId: colorIdToUse})
+		}
+		//rowY := row + secY
+		//m.redis.BitField()
+	}
+	return nil
+}
+
+func (m *Manager) setImage(img image.Image, x int, y int) {
+	// Determine all sections which need to be updated
+	// TODO: improve on naive search
+	intersectingSections := make([]*Section, 0, 4)
+	imgBounds := img.Bounds()
+	log.Printf("img: %dx%d at (x,y): (%d,%d)", imgBounds.Dx(), imgBounds.Dy(), x, y)
+	for _, section := range m.sections {
+		secW := section.meta.BotRight.X - section.meta.TopLeft.X
+		secH := section.meta.BotRight.Y - section.meta.TopLeft.Y
+		if x <= section.meta.TopLeft.X+secW &&
+			x+imgBounds.Dx() >= section.meta.TopLeft.X &&
+			y <= section.meta.TopLeft.Y+secH &&
+			y+imgBounds.Dy() >= section.meta.TopLeft.Y {
+			intersectingSections = append(intersectingSections, section)
+		}
+	}
+
+	for _, section := range intersectingSections {
+		log.Printf("%s: %d, %d", section.meta.Id, section.meta.TopLeft.X, section.meta.TopLeft.Y)
+		// Calculate intersecting rectangle
+		topLeftX := max(section.meta.TopLeft.X, x)
+		topLeftY := max(section.meta.TopLeft.Y, y)
+		botRightX := min(section.meta.BotRight.X, x+imgBounds.Dx())
+		botRightY := min(section.meta.BotRight.Y, y+imgBounds.Dy())
+
+		// Get the correct pixels in the section
+		m.setPixelsInSection(section.meta,
+			topLeftX-section.meta.TopLeft.X, topLeftY-section.meta.TopLeft.Y, // Translate into coords relative to top left of section
+			botRightX-topLeftX, botRightY-topLeftY, // Width of area to draw
+			img, topLeftX-x, topLeftY-y) // Translate into coords relative to top left of image
+
+		log.Printf("(%d, %d), (%d, %d) in (%d, %d)", topLeftX, topLeftY, botRightX, botRightY, topLeftX-x, topLeftY-y)
+	}
+
 }
 
 func (m *Manager) setPixel(setPixData SetPixelData) {

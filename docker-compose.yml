@@ -29,6 +29,8 @@ services:
             - 'traefik.http.routers.go-server.middlewares=go-server-strip-api-prefix'
             - 'traefik.http.services.go-server.loadbalancer.server.port=5000'
             - 'traefik.http.routers.go-server-socket.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`/ws`)'
+        environment:
+            - JWT_SECRET=${JWT_SECRET}
     website:
         depends_on:
             - traefik
