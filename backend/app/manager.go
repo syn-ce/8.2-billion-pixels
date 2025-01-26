@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"iter"
 	"log"
 	"net/http"
 	"sync"
@@ -483,4 +484,117 @@ func (m *Manager) LoadUser(username string) (User, error) {
 	}
 
 	return user, nil
+}
+
+// Define iterator which iterates over section data in batches of size `bitsPerPixel`
+// (will still return ints (-> limits to 32 bits), but the extra bits will be ignored by redis)
+func iterateSectionData(data []byte, nrBits int, bitsPerPixel int) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		// The last byte will get padded with zeros if necessary; This makes sure we only go as far as we want to
+		log.Println(nrBits)
+		log.Println(len(data))
+		byteIdx := 0
+		bitIdx := 0
+		val := 0
+		for i := 0; i < nrBits; i++ {
+			val = val*2 + int(((data[byteIdx] >> (7 - bitIdx)) & 1))
+			bitIdx++
+			if (i+1)%8 == 0 {
+				byteIdx++
+				bitIdx = 0
+			}
+
+			if (i+1)%int(bitsPerPixel) == 0 {
+				if !yield(val) { // This should never be reached
+					return
+				}
+				val = 0
+			}
+		}
+	}
+}
+
+func (m *Manager) AdjustDataToColorBits(data []byte, nrBits, curBitsPerColor, newBitsPerColor int) []byte {
+	newData := make([]byte, nrBits/8)
+	byteIdx := -1
+	bitIdx := 0
+	// Iterate over data in batches of size `prevBitsPerColor`
+	for oldColor := range iterateSectionData(data, nrBits, curBitsPerColor) {
+		for i := range newBitsPerColor {
+			if bitIdx%8 == 0 {
+				newData = append(newData, 0)
+				byteIdx++
+				bitIdx = 0
+			}
+			// Fill leading ones with zeros if necessary
+			if newBitsPerColor-i > curBitsPerColor {
+				// Add a leading 0 -> do nothing
+			} else { // Add bit of oldColor
+				// For now assume new > cur -> Add all bits of oldColor
+				newData[byteIdx] += byte((oldColor>>(newBitsPerColor-1-i))&1) << (7 - bitIdx)
+			}
+			bitIdx++
+		}
+	}
+	return newData
+}
+
+func (m *Manager) UpdateColors(newColors []Color, newBitsPerColor int) error {
+	// Update bits per pixel
+
+	curBitsPerColor, err := m.redis.Get(*m.ctx, REDIS_KEYS.BITS_PER_COLOR).Int()
+	if err != nil {
+		log.Println("error when getting key ", err)
+		return err
+	}
+	log.Println(curBitsPerColor, newColors)
+	m.redis.Set(*m.ctx, REDIS_KEYS.BITS_PER_COLOR, newBitsPerColor, 0)
+
+	// Update colors
+	colors := make([]*Color, len(newColors))
+	for i := range len(newColors) {
+		colors[i] = &newColors[i]
+	}
+	m.colorProvider = NewColorProvider(newBitsPerColor, colors...)
+
+	// Update bits of sections
+	for _, section := range m.sections {
+		// Update data
+		data, err := m.redis.Get(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id)).Bytes()
+		if err != nil {
+			return err
+		}
+		log.Printf("cur bits per color: %d", curBitsPerColor)
+		nrBits := section.width() * section.height() * curBitsPerColor
+		log.Printf("Calculated nr bits as %d", nrBits)
+		newData := m.AdjustDataToColorBits(data, nrBits, curBitsPerColor, newBitsPerColor)
+		m.redis.Del(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id))
+		m.redis.Set(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id), newData, 0)
+	}
+	return nil
+}
+
+func (m *Manager) Test(w http.ResponseWriter, r *http.Request) {
+	// Put data into redis
+	m.redis.SetBit(*m.ctx, "test-1", 16, 1)
+
+	res, err := m.redis.Get(*m.ctx, "test-1").Bytes()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	curBitsPerColor := 5
+	newBitsPerColor := 3
+	for field := range iterateSectionData(res, 20, curBitsPerColor) {
+		log.Printf("%05b", field)
+	}
+	log.Printf("%08b", res)
+	nrBits := 20
+	newData := m.AdjustDataToColorBits(res, nrBits, curBitsPerColor, newBitsPerColor)
+	log.Printf("%08b", newData)
+	for field := range iterateSectionData(newData, 12, newBitsPerColor) {
+		log.Printf("%03b", field)
+	}
+
 }

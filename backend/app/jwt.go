@@ -130,3 +130,19 @@ func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
 
 	manager.setImage(image, payload.X, payload.Y)
 }
+
+type ColorUpdate struct {
+	Colors       []Color `json:"colors"`
+	BitsPerColor int     `json:"bitsPerColor"`
+}
+
+func UpdateColorsHandler(w http.ResponseWriter, r *http.Request, manager *Manager) {
+	var colorUpdate ColorUpdate
+	if err := json.NewDecoder(r.Body).Decode(&colorUpdate); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+
+	manager.UpdateColors(colorUpdate.Colors, colorUpdate.BitsPerColor)
+}

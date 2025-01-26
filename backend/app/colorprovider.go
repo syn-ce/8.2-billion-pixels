@@ -2,6 +2,8 @@ package main
 
 import (
 	"container/heap"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"image/color"
 	"log"
@@ -19,6 +21,87 @@ func NewColor(r, g, b byte) *Color {
 func FromColor(c color.Color) *Color {
 	r, g, b, _ := c.RGBA()
 	return NewColor(byte(r), byte(g), byte(b))
+}
+
+// https://stackoverflow.com/questions/54197913/parse-hex-string-to-image-color
+var errInvalidFormat = errors.New("invalid format")
+
+func ParseHexColorFast(s string) (c Color, err error) {
+	if s[0] != '#' {
+		return c, errInvalidFormat
+	}
+
+	hexToByte := func(b byte) byte {
+		switch {
+		case b >= '0' && b <= '9':
+			return b - '0'
+		case b >= 'a' && b <= 'f':
+			return b - 'a' + 10
+		case b >= 'A' && b <= 'F':
+			return b - 'A' + 10
+		}
+		err = errInvalidFormat
+		return 0
+	}
+
+	switch len(s) {
+	case 7:
+		c.R = hexToByte(s[1])<<4 + hexToByte(s[2])
+		c.G = hexToByte(s[3])<<4 + hexToByte(s[4])
+		c.B = hexToByte(s[5])<<4 + hexToByte(s[6])
+	case 4:
+		c.R = hexToByte(s[1]) * 17
+		c.G = hexToByte(s[2]) * 17
+		c.B = hexToByte(s[3]) * 17
+	default:
+		err = errInvalidFormat
+	}
+	return c, err
+}
+
+func (c *Color) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&[]byte{c.R, c.G, c.B})
+}
+
+func TryParseRGB(data []byte, color *Color) error {
+	var rgb []int
+	if err := json.Unmarshal(data, &rgb); err != nil {
+		log.Println("error while trying to unmarshal json color as rgb list")
+		return err
+	}
+	if len(rgb) != 3 {
+		return fmt.Errorf("cannot unmarshal color from json: array needs 3 integer values but has %d", len(rgb))
+	}
+	*color = *NewColor(byte(rgb[0]), byte(rgb[1]), byte(rgb[2]))
+	return nil
+}
+
+func TryParseHex(data []byte, color *Color) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		log.Println("error while trying to unmarshal json color as string")
+		return err
+	}
+
+	c, err := ParseHexColorFast(s)
+	if err != nil {
+		return fmt.Errorf("json color cannot be parsed as hex")
+	}
+
+	*color = c
+
+	return nil
+}
+
+func (c *Color) UnmarshalJSON(data []byte) error {
+	if err := TryParseRGB(data, c); err != nil {
+		log.Println("could not parse json color as rgb list")
+		if err := TryParseHex(data, c); err != nil {
+			return fmt.Errorf("could not parse json color")
+		}
+	}
+
+	return nil
 }
 
 type ColorProvider struct {
