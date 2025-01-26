@@ -50,7 +50,7 @@ func (m *Manager) loadSectionsMeta() error {
 		log.Printf("error when getting key %s %v\n", REDIS_KEYS.SEC_IDS, err)
 		return err
 	}
-	log.Println("Ids: ", sectionIds)
+	log.Printf("loading %d sections", len(sectionIds))
 	sections := make([]*Section, len(sectionIds))
 	// Section meta data
 	for i, id := range sectionIds {
@@ -157,21 +157,6 @@ func NewManager(redisOptions *redis.Options) (*Manager, error) {
 
 	m.pubsub = m.redis.Subscribe(*m.ctx, "set_pixel")
 
-	//def load_sections(redis: Redis):
-	//    sec_ids = [int(sec_id) for sec_id in redis.smembers(RedisKeys.SEC_IDS)]
-	//    return [Section.from_bytes(redis.get(RedisKeys.sec_info(sec_id))) for sec_id in sec_ids]
-
-	//	bits_per_color = int(redis.get(RedisKeys.BITS_PER_COLOR))
-	//
-	//    color_provider = ColorProvider(bits_per_color, [])
-	//    colorset = redis.smembers(RedisKeys.COLOR_SET)
-	//    color_provider.add_colors_from_bytes(colorset)
-	//    colors_json = [{'id': id, 'rgb': color.rgb()} for id, color in color_provider.get_id_colors().items()]
-	//
-	//    #sections: list[Section] = split_bits(NR_BITS, ASP_RATIO_REL_W, ASP_RATIO_REL_H, 5, 2)
-	//    sections = load_sections(redis)
-	//    sections_json = [section.to_json() for section in sections]
-
 	m.setupEventHandlers()
 	return m, nil
 }
@@ -194,7 +179,6 @@ func (m *Manager) loadFromRedis() error {
 func (m *Manager) setPixelsInSection(secMeta SectionMetaData, secX, secY, w, h int, img image.Image, imgX int, imgY int) error {
 	// set row by row
 	secWidth := secMeta.BotRight.X - secMeta.TopLeft.X
-	log.Printf("dimensions: %dx%d=%d", w, h, w*h)
 	for row := range h {
 		// Slice into image
 		for col := range w {
@@ -218,7 +202,6 @@ func (m *Manager) setImage(img image.Image, x int, y int) {
 	// TODO: improve on naive search
 	intersectingSections := make([]*Section, 0, 4)
 	imgBounds := img.Bounds()
-	log.Printf("img: %dx%d at (x,y): (%d,%d)", imgBounds.Dx(), imgBounds.Dy(), x, y)
 	for _, section := range m.sections {
 		secW := section.meta.BotRight.X - section.meta.TopLeft.X
 		secH := section.meta.BotRight.Y - section.meta.TopLeft.Y
@@ -407,8 +390,7 @@ type SectionConfig = struct {
 }
 
 func (m *Manager) serveSections(w http.ResponseWriter, r *http.Request) {
-	log.Println("Sections request")
-	log.Println(r.Header)
+	log.Println("serving sections")
 	sectionsMeta := make([]SectionMetaData, len(m.sections))
 	for id, section := range m.sections {
 		sectionsMeta[id] = section.meta
@@ -431,7 +413,7 @@ type ColorChoice = struct {
 }
 
 func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
-	log.Println("Color request")
+	log.Println("serving colors")
 	colorChoices := make([]ColorChoice, len(m.colorProvider.colors))
 
 	idx := 0
@@ -495,8 +477,6 @@ func (m *Manager) LoadUser(username string) (User, error) {
 func iterateSectionData(data []byte, nrBits int, bitsPerPixel int) iter.Seq[int] {
 	return func(yield func(int) bool) {
 		// The last byte will get padded with zeros if necessary; This makes sure we only go as far as we want to
-		log.Println(nrBits)
-		log.Println(len(data))
 		byteIdx := 0
 		bitIdx := 0
 		val := 0
@@ -544,6 +524,7 @@ func (m *Manager) AdjustDataToColorBits(data []byte, nrBits, curBitsPerColor, ne
 }
 
 func (m *Manager) UpdateColors(colorUpdate ColorUpdate) error {
+	log.Printf("updating colors: %+v", colorUpdate)
 	// Update bits per pixel
 	newColors := colorUpdate.Colors
 	newBitsPerColor := colorUpdate.BitsPerColor
@@ -553,7 +534,6 @@ func (m *Manager) UpdateColors(colorUpdate ColorUpdate) error {
 		log.Println("error when getting key ", err)
 		return err
 	}
-	log.Println(curBitsPerColor, newColors)
 	m.redis.Set(*m.ctx, REDIS_KEYS.BITS_PER_COLOR, newBitsPerColor, 0)
 
 	// Update colors
@@ -572,9 +552,7 @@ func (m *Manager) UpdateColors(colorUpdate ColorUpdate) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("cur bits per color: %d", curBitsPerColor)
 		nrBits := section.width() * section.height() * curBitsPerColor
-		log.Printf("Calculated nr bits as %d", nrBits)
 		newData := m.AdjustDataToColorBits(data, nrBits, curBitsPerColor, newBitsPerColor)
 		m.redis.Del(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id))
 		m.redis.Set(*m.ctx, REDIS_KEYS.SEC_PIX_DATA(section.meta.Id), newData, 0)

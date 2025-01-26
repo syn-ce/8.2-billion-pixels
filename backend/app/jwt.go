@@ -108,8 +108,6 @@ func getImageFromFilePath(filePath string) (image.Image, error) {
 }
 
 func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
-	log.Println("We're in")
-
 	decoder := json.NewDecoder(r.Body)
 	var payload ImgLoadInstructions
 	if err := decoder.Decode(&payload); err != nil {
@@ -141,7 +139,7 @@ func UpdateColorsHandler(w http.ResponseWriter, r *http.Request, manager *Manage
 	var colorUpdate ColorUpdate
 	if err := json.NewDecoder(r.Body).Decode(&colorUpdate); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Println(err)
+		log.Println("could not parse json color update")
 		return
 	}
 

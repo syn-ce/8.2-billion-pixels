@@ -182,7 +182,6 @@ func (cp *ColorProvider) addColor(c *Color) error {
 	cp.ids[c] = id
 	cp.order[id] = cp.nextOrderNr // Default order is insertion order
 	cp.nextOrderNr++
-	log.Printf("%d: %v\n", id, c)
 
 	return nil
 }
