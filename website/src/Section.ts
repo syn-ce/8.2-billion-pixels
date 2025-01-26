@@ -19,6 +19,7 @@ export class Section implements SectionAttributes {
     bitsPerPixel: number
     imgData: ImageData | null
     colorProvider: ColorProvider
+    alreadyDrawing: boolean // Indicates whether section is currently drawing itself; If so, new draw calls will be ignored
 
     constructor(
         topLeft: [number, number],
@@ -35,6 +36,7 @@ export class Section implements SectionAttributes {
         this.bitsPerPixel = bitsPerPixel
         this.colorProvider = colorProvider
         this.imgData = null // Empty default
+        this.alreadyDrawing = false
 
         this.sectionData = new SectionData(
             undefined,
@@ -73,14 +75,15 @@ export class Section implements SectionAttributes {
         return this.imgData!
     }
 
-    // Tell it to draw itself; If required, fetches data
+    // Tell it to draw itself; If required, fetches data; If it's already in the process of drawing (fetching), does nothing.
+    // TODO: maybe allow cancellation
     drawOnSectionCanvas = async (sectionCanvas: SectionCanvas) => {
-        const canvasPixel = sectionCanvas.sectionToCanvasCoords(this.topLeft)
-        sectionCanvas.ctx.putImageData(
-            await this.getImageData(),
-            canvasPixel[0],
-            canvasPixel[1]
-        )
+        if (this.alreadyDrawing) return // Avoid multiple simultaneous draws (no need/use for them); The latest one will draw up to date
+        this.alreadyDrawing = true
+        const data = await this.getImageData()
+        const canvasPixel = sectionCanvas.sectionToCanvasCoords(this.topLeft) // Calculate position AFTER fetching data
+        sectionCanvas.ctx.putImageData(data, canvasPixel[0], canvasPixel[1])
+        this.alreadyDrawing = false
     }
 
     setData = (data: Uint8Array) => {
