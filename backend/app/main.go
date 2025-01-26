@@ -22,10 +22,10 @@ func setupAPI() (*mux.Router, error) {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", manager.serveWS)
-	r.HandleFunc("/colors", manager.serveColors)
-	r.HandleFunc("/sections", manager.serveSections)
-	r.HandleFunc("/section-data/{secId}", manager.serveSectionData)
+	r.HandleFunc("/ws", manager.ServeWS)
+	r.HandleFunc("/colors", manager.ServeColors)
+	r.HandleFunc("/sections", manager.ServeSections)
+	r.HandleFunc("/section-data/{secId}", manager.ServeSectionData)
 	r.HandleFunc("/test", manager.Test)
 	r.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
 		LoginHandler(w, r, manager)
@@ -38,13 +38,13 @@ func setupAPI() (*mux.Router, error) {
 	})
 
 	//initRedisFromScratch(manager)
-	for err := manager.loadFromRedis(); err != nil; {
+	for err := manager.LoadFromRedis(); err != nil; {
 		log.Println("Can't load data from redis. Retrying in 2 seconds...")
 		time.Sleep(2 * time.Second)
 	}
 	log.Println("Successfully loaded data from redis.")
 
-	go manager.listenForEvents()
+	go manager.ListenForEvents()
 
 	return r, nil
 }
@@ -74,16 +74,16 @@ func initRedisFromScratch(m *Manager) {
 		NewColor(115, 171, 132)}
 
 	colorProvider := NewColorProvider(bitsPerColor, colors...)
-	sections := splitIntoSections(*startTopLeft, secWidth, secHeight, nrRows, nrCols)
+	sections := SplitIntoSections(*startTopLeft, secWidth, secHeight, nrRows, nrCols)
 	log.Printf("%d sections\n", len(sections))
 	log.Printf("%d colors\n", len(colorProvider.colors))
 
 	m.colorProvider = colorProvider
 	m.sections = sections
-	if err := m.saveColorProvider(); err != nil {
+	if err := m.SaveColorProvider(); err != nil {
 		log.Println("failed to save color provider", err)
 	}
-	if err := m.saveSectionsMeta(); err != nil {
+	if err := m.SaveSectionsMeta(); err != nil {
 		log.Println("failed to save sections meta", err)
 	}
 	initSectionData(m)

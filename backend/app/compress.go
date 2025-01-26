@@ -7,7 +7,7 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-func compress(data []byte) ([]byte, error) {
+func Compress(data []byte) ([]byte, error) {
 	var compressed bytes.Buffer
 	writer := lz4.NewWriter(&compressed)
 

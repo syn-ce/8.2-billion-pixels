@@ -41,7 +41,7 @@ func NewClient(conn *websocket.Conn, m *Manager) *Client {
 	}
 }
 
-func (client *Client) writeMsgs() {
+func (client *Client) WriteMsgs() {
 	ch := make(chan SetPixelData)
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -73,7 +73,7 @@ func (client *Client) writeMsgs() {
 	}
 }
 
-func (client *Client) readUserMsgs() {
+func (client *Client) ReadUserMsgs() {
 	defer client.manager.removeClient(client)
 
 	client.connection.SetReadLimit(int64(maxMessageSize))

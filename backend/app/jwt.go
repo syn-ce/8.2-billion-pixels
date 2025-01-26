@@ -18,7 +18,7 @@ import (
 // os.Getenv will return an empty string. This feels a bit sketchy -> Look into this again.
 var secretKey = []byte(os.Getenv("JWT_SECRET"))
 
-func CreateToken(username string) (string, error) {
+func createToken(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
 		"exp":      time.Now().Add(time.Hour * 1).Unix(),
@@ -58,7 +58,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, m *Manager) {
 	userInDb, err := m.LoadUser(u.Username)
 
 	if err == nil && u.Username == userInDb.Username && u.Password == userInDb.Password {
-		tokenString, err := CreateToken(u.Username)
+		tokenString, err := createToken(u.Username)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Errorf("Could not create token for username %s", u.Username)
@@ -126,7 +126,7 @@ func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
 		return
 	}
 
-	manager.setImage(image, payload.X, payload.Y)
+	manager.PutImage(image, payload.X, payload.Y)
 }
 
 type ColorUpdate struct {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"iter"
 	"strconv"
 )
 
@@ -28,11 +29,11 @@ type Section struct {
 	data *string
 }
 
-func (s *Section) width() int {
+func (s *Section) Width() int {
 	return (s.meta.BotRight.X - s.meta.TopLeft.X)
 }
 
-func (s *Section) height() int {
+func (s *Section) Height() int {
 	return (s.meta.BotRight.Y - s.meta.TopLeft.Y)
 }
 
@@ -41,7 +42,7 @@ func NewSection(meta *SectionMetaData, data *string) *Section {
 }
 
 // TODO: Properly think about how to approach the ids - in case of an expansion, the current approach would rename some sections
-func splitIntoSections(startTopLeft Point, sectionW, sectionH, rows, cols int) []*Section {
+func SplitIntoSections(startTopLeft Point, sectionW, sectionH, rows, cols int) []*Section {
 	sections := make([]*Section, rows*cols)
 	for row := range rows {
 		for col := range cols {
@@ -52,4 +53,30 @@ func splitIntoSections(startTopLeft Point, sectionW, sectionH, rows, cols int) [
 		}
 	}
 	return sections
+}
+
+// Define iterator which iterates over section data in batches of size `bitsPerPixel`
+// (will still return ints (-> limits to 32 bits), but the extra bits will be ignored by redis)
+func IterateSectionData(data []byte, nrBits int, bitsPerPixel int) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		// The last byte will get padded with zeros if necessary; This makes sure we only go as far as we want to
+		byteIdx := 0
+		bitIdx := 0
+		val := 0
+		for i := 0; i < nrBits; i++ {
+			val = val*2 + int(((data[byteIdx] >> (7 - bitIdx)) & 1))
+			bitIdx++
+			if (i+1)%8 == 0 {
+				byteIdx++
+				bitIdx = 0
+			}
+
+			if (i+1)%int(bitsPerPixel) == 0 {
+				if !yield(val) { // This should never be reached
+					return
+				}
+				val = 0
+			}
+		}
+	}
 }

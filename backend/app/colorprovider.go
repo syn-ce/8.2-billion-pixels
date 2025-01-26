@@ -128,7 +128,7 @@ func NewColorProvider(bitsPerColor int, colors ...*Color) *ColorProvider {
 	}
 
 	for _, color := range colors {
-		cp.addColor(color)
+		cp.AddColor(color)
 	}
 
 	return cp
@@ -168,7 +168,7 @@ func (cp *ColorProvider) SetDefaultColor(color Color) error {
 	return nil
 }
 
-func (cp *ColorProvider) addColor(c *Color) error {
+func (cp *ColorProvider) AddColor(c *Color) error {
 	if len(cp.colors) == 1<<cp.bitsPerColor {
 		return fmt.Errorf("can't add more than %d colors to colorprovider with %d bits per color", 1<<cp.bitsPerColor, cp.bitsPerColor)
 	}
