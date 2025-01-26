@@ -108,7 +108,10 @@ func (m *Manager) loadColorProvider() error {
 			log.Println("Could not unmarshal color:", err)
 			continue
 		}
-		m.colorProvider.colors[colorChoice.Id] = &Color{byte(colorChoice.Rgb[0]), byte(colorChoice.Rgb[1]), byte(colorChoice.Rgb[2])}
+		color := &Color{byte(colorChoice.Rgb[0]), byte(colorChoice.Rgb[1]), byte(colorChoice.Rgb[2])}
+		m.colorProvider.colors[colorChoice.Id] = color
+		m.colorProvider.ids[color] = colorChoice.Id
+		m.colorProvider.order[colorChoice.Id] = colorChoice.Order
 	}
 
 	return nil
