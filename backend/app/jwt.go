@@ -134,6 +134,7 @@ func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
 type ColorUpdate struct {
 	Colors       []Color `json:"colors"`
 	BitsPerColor int     `json:"bitsPerColor"`
+	DefaultColor Color   `json:"defaultColor"`
 }
 
 func UpdateColorsHandler(w http.ResponseWriter, r *http.Request, manager *Manager) {
@@ -144,5 +145,5 @@ func UpdateColorsHandler(w http.ResponseWriter, r *http.Request, manager *Manage
 		return
 	}
 
-	manager.UpdateColors(colorUpdate.Colors, colorUpdate.BitsPerColor)
+	manager.UpdateColors(colorUpdate)
 }

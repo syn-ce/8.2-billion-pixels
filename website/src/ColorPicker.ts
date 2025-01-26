@@ -1,11 +1,13 @@
 export class ColorChoice {
     rgb: [number, number, number]
-    id: number
+    id: number // Uniquely identifies this color
+    order: number // Assigns a unique position to this color (where to display it in color picker)
     htmlEl?: HTMLElement
 
-    constructor(id: number, rgb: [number, number, number]) {
+    constructor(id: number, rgb: [number, number, number], order: number) {
         this.rgb = rgb
         this.id = id
+        this.order = order
         this.htmlEl = undefined
     }
 

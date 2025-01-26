@@ -118,7 +118,7 @@ func (m *Manager) saveColorProvider() error {
 	m.redis.Del(*m.ctx, REDIS_KEYS.COLOR_SET)
 	m.redis.Set(*m.ctx, REDIS_KEYS.BITS_PER_COLOR, m.colorProvider.bitsPerColor, 0)
 	for id, color := range m.colorProvider.colors {
-		colorChoice := ColorChoice{id, []int{int(color.R), int(color.G), int(color.B)}}
+		colorChoice := ColorChoice{id, m.colorProvider.order[id], []int{int(color.R), int(color.G), int(color.B)}}
 		bytes, err := json.Marshal(colorChoice)
 		if err != nil {
 			log.Println("could not marshal color", err)
@@ -422,8 +422,9 @@ func (m *Manager) serveSections(w http.ResponseWriter, r *http.Request) {
 }
 
 type ColorChoice = struct {
-	Id  int   `json:"id"`
-	Rgb []int `json:"rgb"`
+	Id    int   `json:"id"`
+	Order int   `json:"order"`
+	Rgb   []int `json:"rgb"`
 }
 
 func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
@@ -432,7 +433,7 @@ func (m *Manager) serveColors(w http.ResponseWriter, r *http.Request) {
 
 	idx := 0
 	for id, color := range m.colorProvider.colors {
-		colorChoices[idx] = ColorChoice{id, []int{int(color.R), int(color.G), int(color.B)}}
+		colorChoices[idx] = ColorChoice{id, m.colorProvider.order[id], []int{int(color.R), int(color.G), int(color.B)}}
 		idx++
 	}
 	colorsJson, err := json.Marshal(colorChoices)
@@ -539,8 +540,10 @@ func (m *Manager) AdjustDataToColorBits(data []byte, nrBits, curBitsPerColor, ne
 	return newData
 }
 
-func (m *Manager) UpdateColors(newColors []Color, newBitsPerColor int) error {
+func (m *Manager) UpdateColors(colorUpdate ColorUpdate) error {
 	// Update bits per pixel
+	newColors := colorUpdate.Colors
+	newBitsPerColor := colorUpdate.BitsPerColor
 
 	curBitsPerColor, err := m.redis.Get(*m.ctx, REDIS_KEYS.BITS_PER_COLOR).Int()
 	if err != nil {
@@ -556,6 +559,7 @@ func (m *Manager) UpdateColors(newColors []Color, newBitsPerColor int) error {
 		colors[i] = &newColors[i]
 	}
 	m.colorProvider = NewColorProvider(newBitsPerColor, colors...)
+	m.colorProvider.SetDefaultColor(colorUpdate.DefaultColor)
 	m.saveColorProvider()
 
 	// Update bits of sections

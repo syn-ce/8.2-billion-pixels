@@ -8,7 +8,7 @@ export const fetchColorChoices = async () => {
     const resp = await fetch(`${URL}/colors`)
     const colorChoices: ColorChoice[] = await resp.json()
 
-    return colorChoices.sort((a, b) => a.id - b.id)
+    return colorChoices.sort((a, b) => a.order - b.order)
 }
 
 export const fetchSectionsConfig = async () => {

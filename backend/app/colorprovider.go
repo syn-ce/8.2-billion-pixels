@@ -23,6 +23,10 @@ func FromColor(c color.Color) *Color {
 	return NewColor(byte(r), byte(g), byte(b))
 }
 
+func (c1 *Color) RgbEq(c2 Color) bool {
+	return c1.R == c2.R && c1.G == c2.G && c1.B == c2.B
+}
+
 // https://stackoverflow.com/questions/54197913/parse-hex-string-to-image-color
 var errInvalidFormat = errors.New("invalid format")
 
@@ -107,14 +111,20 @@ func (c *Color) UnmarshalJSON(data []byte) error {
 type ColorProvider struct {
 	bitsPerColor int
 	colors       map[int]*Color
+	ids          map[*Color]int
+	order        map[int]int
 	idHeap       IntHeap
+	nextOrderNr  int
 }
 
 func NewColorProvider(bitsPerColor int, colors ...*Color) *ColorProvider {
 	cp := &ColorProvider{
 		bitsPerColor,
 		make(map[int]*Color),
+		make(map[*Color]int),
+		make(map[int]int),
 		make(IntHeap, 0),
+		0,
 	}
 
 	for _, color := range colors {
@@ -122,6 +132,40 @@ func NewColorProvider(bitsPerColor int, colors ...*Color) *ColorProvider {
 	}
 
 	return cp
+}
+
+func (cp *ColorProvider) FindColor(c Color) (*Color, error) {
+	for _, color := range cp.colors {
+		if color.RgbEq(c) {
+			return color, nil
+		}
+	}
+	return nil, fmt.Errorf("color provider does not contain color with requested rgb values: %v", c)
+}
+
+func (cp *ColorProvider) SetDefaultColor(color Color) error {
+	if len(cp.colors) < 2 {
+		return nil
+	}
+
+	defaultColor, err := cp.FindColor(color)
+	if err != nil {
+		return err
+	}
+
+	// Swap id with color which has id 0
+	zeroIdColor := cp.colors[0]
+	zeroIdColorOrder := cp.order[0]
+	defaultColorId := cp.ids[defaultColor]
+
+	cp.colors[defaultColorId] = zeroIdColor
+	cp.ids[zeroIdColor] = defaultColorId
+	cp.colors[0] = defaultColor
+	cp.ids[defaultColor] = 0
+	// Swap orders as well
+	cp.order[0] = cp.order[defaultColorId]
+	cp.order[defaultColorId] = zeroIdColorOrder
+	return nil
 }
 
 func (cp *ColorProvider) addColor(c *Color) error {
@@ -135,6 +179,9 @@ func (cp *ColorProvider) addColor(c *Color) error {
 	}
 
 	cp.colors[id] = c
+	cp.ids[c] = id
+	cp.order[id] = cp.nextOrderNr // Default order is insertion order
+	cp.nextOrderNr++
 	log.Printf("%d: %v\n", id, c)
 
 	return nil
