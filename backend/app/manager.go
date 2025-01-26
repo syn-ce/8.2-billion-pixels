@@ -88,7 +88,7 @@ func (m *Manager) saveSectionsMeta() error {
 }
 
 func (m *Manager) loadColorProvider() error {
-	bitsPerColor, err := m.redis.Get(*m.ctx, REDIS_KEYS.BITS_PER_COLOR).Int64()
+	bitsPerColor, err := m.redis.Get(*m.ctx, REDIS_KEYS.BITS_PER_COLOR).Int()
 	if err != nil {
 		log.Println("error when getting key ", err)
 		return err
@@ -99,7 +99,7 @@ func (m *Manager) loadColorProvider() error {
 		return err
 	}
 
-	m.colorProvider = NewColorProvider(int(bitsPerColor))
+	m.colorProvider = NewColorProvider(bitsPerColor)
 
 	for _, binary := range colorSet {
 		var colorChoice ColorChoice
