@@ -28,6 +28,14 @@ type Section struct {
 	data *string
 }
 
+func (s *Section) width() int {
+	return (s.meta.BotRight.X - s.meta.TopLeft.X)
+}
+
+func (s *Section) height() int {
+	return (s.meta.BotRight.Y - s.meta.TopLeft.Y)
+}
+
 func NewSection(meta *SectionMetaData, data *string) *Section {
 	return &Section{*meta, data}
 }
