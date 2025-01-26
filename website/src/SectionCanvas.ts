@@ -23,7 +23,6 @@ export class SectionCanvas {
     maxZoom: number
     minZoom: number
     normScale: number
-    desiredScale: number // The exact scale which should be displayed, but might differ from the actual one to mitigate aliasing
     maxNormScale: number
     minNormScale: number
     canvasDefaultOffset: [number, number]
@@ -85,7 +84,7 @@ export class SectionCanvas {
         this.zoomSlider.value = this.normScale * this.maxZoom
         this.zoomSlider.step = 1
         this.colorProvider = colorProvider
-        this.desiredScale = this.normScale
+        this.normScale = this.normScale
         this.test = 0
 
         this.offset = [0, 0]
@@ -550,8 +549,7 @@ export class SectionCanvas {
         // TODO: this assumes that all timeouts are completed before the next one is scheduled, which is actually a decently irresponsible assumption to make
         this.stopAnimation()
 
-        // Factor to apply at every step
-        const goalDesiredScale = this.desiredScale * factor
+        const goalScale = this.clampScale(this.normScale * factor)
 
         let start = -1
         const _zoomScreenCoordsEasingRec = (time: number) => {
@@ -561,7 +559,7 @@ export class SectionCanvas {
 
             this.zoomScreenCoords(
                 screenCoords,
-                goalDesiredScale / factor ** (1 - progress) / this.desiredScale // (want)/(sectionCanvas.desiredScale (=have))
+                goalScale / factor ** (1 - progress) / this.normScale // (want)/(sectionCanvas.desiredScale (=have))
             )
             this.updateCanvas() // TODO: use requestAnimationFrame with this as well
 
@@ -585,16 +583,13 @@ export class SectionCanvas {
             canvBoundRect.top + canvBoundRect.height / 2 - screenCoords[1],
         ]
 
-        this.desiredScale = this.clampScale(this.desiredScale * factor)
-        const newScale = this.clampScale(
-            (this.desiredScale * this.maxZoom) / this.maxZoom
-        )
-        const actualFactor = newScale / this.normScale
+        const newScale = this.clampScale(this.normScale * factor)
+        const clampedFactor = newScale / this.normScale
         this.normScale = newScale
 
         const translation: [number, number] = [
-            Math.round(diffToCenter[0] * (actualFactor - 1)),
-            Math.round(diffToCenter[1] * (actualFactor - 1)),
+            Math.round(diffToCenter[0] * (clampedFactor - 1)),
+            Math.round(diffToCenter[1] * (clampedFactor - 1)),
         ]
         this.applyOffsetDiff(translation)
     }
