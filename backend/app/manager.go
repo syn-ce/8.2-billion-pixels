@@ -556,6 +556,7 @@ func (m *Manager) UpdateColors(newColors []Color, newBitsPerColor int) error {
 		colors[i] = &newColors[i]
 	}
 	m.colorProvider = NewColorProvider(newBitsPerColor, colors...)
+	m.saveColorProvider()
 
 	// Update bits of sections
 	for _, section := range m.sections {
