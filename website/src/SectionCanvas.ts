@@ -74,10 +74,10 @@ export class SectionCanvas {
             { x: -1, y: -1, id: -1 },
         ] // You guessed it
         this.maxZoom = maxZoom
-        this.minZoom = 1
+        this.minZoom = 1 / devicePixelRatio
         this.normScale = scale
         this.maxNormScale = 1
-        this.minNormScale = 1 / this.maxZoom
+        this.minNormScale = 1 / (this.maxZoom * devicePixelRatio)
         this.zoomSlider = zoomSlider
         this.zoomSlider.min = this.minZoom
         this.zoomSlider.max = this.maxZoom
@@ -102,8 +102,10 @@ export class SectionCanvas {
         const heightBufferSize = Math.ceil(screenFrame.clientHeight * 0.1)
         this.bufferSize = [widthBufferSize, heightBufferSize]
 
-        this.canvas.width = screenFrame.clientWidth + widthBufferSize * 2
-        this.canvas.height = screenFrame.clientHeight + heightBufferSize * 2
+        this.canvas.width =
+            (screenFrame.clientWidth + widthBufferSize * 2) * devicePixelRatio
+        this.canvas.height =
+            (screenFrame.clientHeight + heightBufferSize * 2) * devicePixelRatio
 
         // The buffer for unsubscribing from sections which go out of range (used to prevent
         // (too early/frequent) unsubscribing from sections when they are only slighly outside

@@ -25,10 +25,6 @@ const socket = setupSocket()
 
 const canvas = <HTMLCanvasElement>document.getElementById('clicker-canvas')
 
-//console.log(screen.width)
-//canvas.width = window.innerWidth //* devicePixelRatio
-//canvas.height = window.innerHeight //* devicePixelRatio
-
 const reticle = document.getElementById('reticle')!
 const reticleWrapper = <HTMLDivElement>(
     document.getElementById('reticle-wrapper')
