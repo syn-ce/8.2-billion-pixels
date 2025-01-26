@@ -22,7 +22,7 @@ export class SectionData {
         // Take bitsPerPixel bits, starting at bitIdx
         let num = 0
         for (let i = bitIdx; i < bitIdx + this.bitsPerPixel; i++) {
-            const byteIdx = Math.floor(bitIdx / 8)
+            const byteIdx = Math.floor(i / 8)
             const bitInByteIdx = i % 8
             const bit = (this.data![byteIdx] >> (7 - bitInByteIdx)) & 1
 
