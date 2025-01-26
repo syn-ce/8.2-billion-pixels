@@ -582,27 +582,27 @@ func (m *Manager) UpdateColors(colorUpdate ColorUpdate) error {
 	return nil
 }
 
+// TODO: worry about performance (set row-wise / pipe requests?)
+func (m *Manager) setPixelsInSectionTest(secMeta SectionMetaData, secX, secY, w, h int) error {
+	// set row by row
+	log.Printf("setting at section (%d,%d) for w,h %d,%d", secX, secY, w, h)
+	secWidth := secMeta.BotRight.X - secMeta.TopLeft.X
+	log.Printf("sec width %d", secWidth)
+	for row := range h {
+		// Slice into image
+		for col := range w {
+			log.Println(row, col)
+			log.Println((secY+row)*secWidth + secX + col)
+			m.setPixel(SetPixelData{SecId: secMeta.Id, PixIdx: (secY+row)*secWidth + (secX + col), ColorId: 5})
+		}
+		//rowY := row + secY
+		//m.redis.BitField()
+	}
+	return nil
+}
+
 func (m *Manager) Test(w http.ResponseWriter, r *http.Request) {
-	// Put data into redis
-	m.redis.SetBit(*m.ctx, "test-1", 16, 1)
-
-	res, err := m.redis.Get(*m.ctx, "test-1").Bytes()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	curBitsPerColor := 5
-	newBitsPerColor := 3
-	for field := range iterateSectionData(res, 20, curBitsPerColor) {
-		log.Printf("%05b", field)
-	}
-	log.Printf("%08b", res)
-	nrBits := 20
-	newData := m.AdjustDataToColorBits(res, nrBits, curBitsPerColor, newBitsPerColor)
-	log.Printf("%08b", newData)
-	for field := range iterateSectionData(newData, 12, newBitsPerColor) {
-		log.Printf("%03b", field)
-	}
-
+	section := m.sections[12]
+	log.Println(section.meta)
+	m.setPixelsInSectionTest(section.meta, 0, 0, 10, 10)
 }
