@@ -451,7 +451,7 @@ func (m *Manager) ServeSectionData(w http.ResponseWriter, r *http.Request) {
 
 	data, err := m.getCompressSectionData(vars["secId"])
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
