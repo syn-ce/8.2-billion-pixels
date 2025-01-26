@@ -186,7 +186,7 @@ const addMouseWheelZoomToCanvas = (sectionCanvas: SectionCanvas) => {
     const canvas = sectionCanvas.canvas
     canvas.onwheel = (evt) => {
         sectionCanvas.stopAnimation()
-        let zoomFactor = evt.deltaY < 0 ? 1.9 : 1 / 1.9
+        let zoomFactor = evt.deltaY < 0 ? 1.3 : 1 / 1.3
         sectionCanvas.zoomScreenCoords([evt.x, evt.y], zoomFactor)
         sectionCanvas.updateCanvas()
     }

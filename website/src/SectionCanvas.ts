@@ -587,7 +587,7 @@ export class SectionCanvas {
 
         this.desiredScale = this.clampScale(this.desiredScale * factor)
         const newScale = this.clampScale(
-            Math.round(this.desiredScale * this.maxZoom) / this.maxZoom
+            (this.desiredScale * this.maxZoom) / this.maxZoom
         )
         const actualFactor = newScale / this.normScale
         this.normScale = newScale
