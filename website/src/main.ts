@@ -146,9 +146,7 @@ sectionCanvas.addUpdateCallback((sectionCanvas: SectionCanvas) => {
     const sectionPixel = sectionCanvas.canvasToSectionCoords(canvasPixel)
 
     const zoomLevel =
-        Math.round(
-            Number.parseFloat(sectionCanvas.zoomSlider.zoomSlider.value) * 100
-        ) / 100
+        Math.round(sectionCanvas.normScale * sectionCanvas.maxZoom * 100) / 100
     initPlacePixelCoordsEl.innerText = `(${sectionPixel}) ${zoomLevel}x`
 })
 

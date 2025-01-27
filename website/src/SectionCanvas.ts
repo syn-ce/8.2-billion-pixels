@@ -82,7 +82,7 @@ export class SectionCanvas {
         this.zoomSlider.min = this.minZoom
         this.zoomSlider.max = this.maxZoom
         this.zoomSlider.value = this.normScale * this.maxZoom
-        this.zoomSlider.step = 1
+        this.zoomSlider.step = 0.01
         this.colorProvider = colorProvider
         this.normScale = this.normScale
         this.test = 0
