@@ -120,7 +120,7 @@ func (m *Manager) SavePositions() error {
 	for id, pos := range m.positions {
 		bytes, err := json.Marshal(pos)
 		if err != nil {
-			log.Println("could not marshal section meta data", err)
+			log.Println("could not marshal position", err)
 			return err
 		}
 		m.redis.Set(*m.ctx, REDIS_KEYS.POSITION(id), bytes, 0)
