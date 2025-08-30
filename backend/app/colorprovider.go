@@ -11,11 +11,15 @@ import (
 )
 
 type Color struct {
-	R, G, B byte
+	R, G, B, A byte
+}
+
+func NewRGBAColor(r, g, b, a byte) *Color {
+	return &Color{r, g, b, a}
 }
 
 func NewColor(r, g, b byte) *Color {
-	return &Color{r, g, b}
+	return NewRGBAColor(r, g, b, 255)
 }
 
 func FromHex(hexValue string) *Color {
@@ -28,8 +32,8 @@ func FromHex(hexValue string) *Color {
 }
 
 func FromColor(c color.Color) *Color {
-	r, g, b, _ := c.RGBA()
-	return NewColor(byte(r), byte(g), byte(b))
+	r, g, b, a := c.RGBA()
+	return NewRGBAColor(byte(r), byte(g), byte(b), byte(a))
 }
 
 func (c1 *Color) RgbEq(c2 Color) bool {
@@ -198,6 +202,9 @@ func (cp *ColorProvider) AddColor(c *Color) error {
 func (cp *ColorProvider) ClosestAvailableColor(c *Color) (int, error) {
 	if len(cp.colors) == 0 {
 		return -1, fmt.Errorf("colorprovider can't determine color closest to %+v because colorprovider doesn't have any colors", *c)
+	}
+	if c.A < 50 { // take default color if (sufficiently) transparent
+		return 0, nil
 	}
 	minDistance := math.MaxInt
 	var minColorId int
