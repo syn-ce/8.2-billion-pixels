@@ -10,6 +10,8 @@ var REDIS_KEYS = struct {
 	SEC_WIDTH       string
 	SEC_HEIGHT      string
 	COLOR_SET       string
+	POS_IDS         string
+	POSITION        func(string) string
 	SEC_IDS         string
 	SEC_META        func(string) string
 	SEC_PIX_DATA    func(string) string
@@ -21,6 +23,10 @@ var REDIS_KEYS = struct {
 	"section_width",
 	"sections_height",
 	"color_set",
+	"pos_ids",
+	func(id string) string {
+		return fmt.Sprint("pos_", id)
+	},
 	"sec_ids",
 	func(id string) string {
 		return fmt.Sprint("sec_", id)

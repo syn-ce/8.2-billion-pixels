@@ -9,6 +9,12 @@ export interface SectionAttributes {
     id: number
 }
 
+export interface SectionConfig {
+    sections: SectionAttributes[]
+    bitsPerPixel: number
+    position: [number, number]
+}
+
 export class Section implements SectionAttributes {
     topLeft: [number, number]
     botRight: [number, number]

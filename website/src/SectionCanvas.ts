@@ -57,7 +57,8 @@ export class SectionCanvas {
         zoomSlider: ZoomSlider,
         canvRetWrapper: HTMLDivElement,
         colorProvider: ColorProvider,
-        canvasDefaultOffsetWrapper: HTMLDivElement
+        canvasDefaultOffsetWrapper: HTMLDivElement,
+        initialPosition: [number, number]
     ) {
         this.canvas = canvas
         this.ctx = canvas.getContext('2d')!
@@ -87,7 +88,7 @@ export class SectionCanvas {
         this.normScale = this.normScale
         this.test = 0
 
-        this.offset = [0, 0]
+        this.offset = [-initialPosition[0], -initialPosition[1]]
         this.contentOffset = [0, 0]
         this.reticle = reticle
         this.sections = sections

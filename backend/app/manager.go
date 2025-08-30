@@ -39,10 +39,11 @@ type Manager struct {
 	ctx            *context.Context
 	sectionSubs    map[string]map[*Client]struct{}
 	sections       []*Section
+	positions      map[string]Point
 	colorProvider  *ColorProvider
 }
 
-func (m *Manager) LoadSectionsMeta() error {
+func (m *Manager) loadSectionsMeta() error {
 	// Section Ids
 	sectionIds, err := m.redis.SMembers(*m.ctx, REDIS_KEYS.SEC_IDS).Result()
 	if err != nil {
@@ -87,7 +88,47 @@ func (m *Manager) SaveSectionsMeta() error {
 	return nil
 }
 
-func (m *Manager) LoadColorProvider() error {
+func (m *Manager) loadPositions() error {
+	positionIds, err := m.redis.SMembers(*m.ctx, REDIS_KEYS.POS_IDS).Result()
+	if err != nil {
+		log.Printf("error when getting key %s %v\n", REDIS_KEYS.POS_IDS, err)
+		return err
+	}
+	log.Printf("loading %d positions", len(positionIds))
+	positions := make(map[string]Point)
+	for _, id := range positionIds {
+		binary, err := m.redis.Get(*m.ctx, REDIS_KEYS.POSITION(id)).Bytes()
+		if err != nil {
+			log.Printf("error when getting key %s %v\n", REDIS_KEYS.SEC_META(id), err)
+			return err
+		}
+		var point = Point{}
+		if err := json.Unmarshal(binary, &point); err != nil {
+			log.Println("could not unmarshal", err)
+			return err
+		}
+		positions[id] = point
+	}
+
+	m.positions = positions
+	return nil
+}
+
+func (m *Manager) SavePositions() error {
+	m.redis.Del(*m.ctx, REDIS_KEYS.POS_IDS)
+	for id, pos := range m.positions {
+		bytes, err := json.Marshal(pos)
+		if err != nil {
+			log.Println("could not marshal section meta data", err)
+			return err
+		}
+		m.redis.Set(*m.ctx, REDIS_KEYS.POSITION(id), bytes, 0)
+		m.redis.SAdd(*m.ctx, REDIS_KEYS.POS_IDS, id)
+	}
+	return nil
+}
+
+func (m *Manager) loadColorProvider() error {
 	bitsPerColor, err := m.redis.Get(*m.ctx, REDIS_KEYS.BITS_PER_COLOR).Int()
 	if err != nil {
 		log.Println("error when getting key ", err)
@@ -161,13 +202,18 @@ func NewManager(redisOptions *redis.Options) (*Manager, error) {
 }
 
 func (m *Manager) LoadFromRedis() error {
-	if err := m.LoadSectionsMeta(); err != nil {
+	if err := m.loadSectionsMeta(); err != nil {
 		log.Println("could not load sections", err)
 		return err
 	}
 
-	if err := m.LoadColorProvider(); err != nil {
+	if err := m.loadColorProvider(); err != nil {
 		log.Println("could not load color provider", err)
+		return err
+	}
+
+	if err := m.loadPositions(); err != nil {
+		log.Println("could not load positions", err)
 		return err
 	}
 
@@ -383,25 +429,45 @@ func (m *Manager) ListenForEvents() {
 	}
 }
 
-type SectionConfig = struct {
+type SectionsMeta = struct {
 	Sections     []SectionMetaData `json:"sections"`
 	BitsPerPixel int               `json:"bitsPerPixel"`
+	Position     Point             `json:"position"`
 }
 
-func (m *Manager) ServeSections(w http.ResponseWriter, r *http.Request) {
-	log.Println("serving sections")
+func (m *Manager) getSectionsMetaData() []SectionMetaData {
 	sectionsMeta := make([]SectionMetaData, len(m.sections))
 	for id, section := range m.sections {
 		sectionsMeta[id] = section.meta
 	}
-	sectionConfig := SectionConfig{sectionsMeta, m.colorProvider.bitsPerColor}
-	sectionsMetaJson, err := json.Marshal(sectionConfig)
+	return sectionsMeta
+}
+
+func (m *Manager) getPosition(posId string) Point {
+	pos, posExists := m.positions[posId]
+
+	if !posExists {
+		pos = *NewPoint(0, 0)
+	}
+	return pos
+}
+
+func (m *Manager) ServeSectionsMeta(w http.ResponseWriter, r *http.Request) {
+	log.Println("serving sections metadata")
+
+	posId := r.URL.Query().Get("position")
+	pos := m.getPosition(posId)
+
+	sectionsMeta := SectionsMeta{m.getSectionsMetaData(), m.colorProvider.bitsPerColor, pos}
+
+	sectionsMetaJson, err := json.Marshal(sectionsMeta)
 	if err != nil {
-		log.Println("Could not marshal sections meta data:", err)
+		log.Println("Could not marshal sections metadata:", err)
 		w.WriteHeader(500)
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	w.Header().Set("content-type", "application/json")
 	w.Write(sectionsMetaJson)
 }
 

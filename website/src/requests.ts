@@ -1,6 +1,6 @@
 import { decompress } from 'lz4js'
 import { ColorChoice } from './ColorPicker'
-import { SectionAttributes } from './Section'
+import { SectionConfig } from './Section'
 
 const URL = '/api'
 
@@ -11,9 +11,9 @@ export const fetchColorChoices = async () => {
     return colorChoices.sort((a, b) => a.order - b.order)
 }
 
-export const fetchSectionsConfig = async () => {
-    const res: { sections: [SectionAttributes]; bitsPerPixel: number } = await (
-        await fetch(`${URL}/sections`)
+export const fetchSectionsConfig = async (initialPositionId: string) => {
+    const res: SectionConfig = await (
+        await fetch(`${URL}/sections?position=${initialPositionId}`)
     ).json()
     // We don't really need different color-depths across sections, and this implementation should make it fairly straight forward to add it if needed
     return res

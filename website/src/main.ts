@@ -1,7 +1,7 @@
 import { ColorChoice, ColorPicker } from './ColorPicker'
 import { fetchColorChoices, fetchSectionsConfig } from './requests'
 import { Reticle } from './Reticle'
-import { Section, SectionAttributes } from './Section'
+import { Section, SectionConfig } from './Section'
 import { SectionCanvas } from './SectionCanvas'
 import { setupSocket } from './socket'
 import './style.css'
@@ -41,10 +41,18 @@ const colorPicker = new ColorPicker(
     <HTMLDivElement>document.getElementById('color-picker')
 )
 
-const sectionConfig: {
-    sections: SectionAttributes[]
-    bitsPerPixel: number
-} = await fetchSectionsConfig()
+const getInitialPositionId = (): string => {
+    // Get id as url param "?position=<id>"
+    const positionIdentifier = new URLSearchParams(
+        document.location.search
+    ).get('position')
+    return positionIdentifier ?? ''
+}
+
+const initialPositionId = getInitialPositionId()
+const sectionConfig: SectionConfig = await fetchSectionsConfig(
+    initialPositionId
+)
 
 // Once section config has been loaded, remove loader
 const removeLoader = () => {
@@ -91,7 +99,8 @@ const sectionCanvas: SectionCanvas = new SectionCanvas(
     zoomSlider,
     canvRetWrapper,
     colorPicker,
-    canvasDefaultOffsetWrapper
+    canvasDefaultOffsetWrapper,
+    sectionConfig.position
 )
 
 window.onresize = () => {
