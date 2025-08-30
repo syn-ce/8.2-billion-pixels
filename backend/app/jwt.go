@@ -100,6 +100,8 @@ type ImgLoadInstructions struct {
 	Path string `json:"path"`
 	X    int    `json:"x"`
 	Y    int    `json:"y"`
+	W    int    `json:"w"`
+	H    int    `json:"h"`
 }
 
 func getImageFromFilePath(filePath string) (image.Image, error) {
@@ -129,6 +131,23 @@ func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
 		log.Printf("Could not load image from path %s: %s", payload.Path, err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+
+	// resize image proportionally depending on either width or height, if specified
+	if payload.W != 0 && payload.W != image.Bounds().Dx() {
+		height := image.Bounds().Dy() * payload.W / image.Bounds().Dx()
+		image, err = ResizeImage(image, payload.W, height)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	} else if payload.H != 0 && payload.H != image.Bounds().Dy() {
+		width := image.Bounds().Dx() * payload.H / image.Bounds().Dy()
+		image, err = ResizeImage(image, width, payload.H)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	manager.PutImage(image, payload.X, payload.Y)
