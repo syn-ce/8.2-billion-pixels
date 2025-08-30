@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"iter"
 	"strconv"
 )
@@ -10,8 +11,22 @@ type Point struct {
 	X, Y int
 }
 
-func (p *Point) MarshalJSON() ([]byte, error) {
+func (p Point) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&[]int{p.X, p.Y})
+}
+
+func (p *Point) UnmarshalJSON(data []byte) error {
+	var arr []int
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+
+	if len(arr) != 2 {
+		return fmt.Errorf("expected array of 2 elements, got %d", len(arr))
+	}
+
+	p.X, p.Y = arr[0], arr[1]
+	return nil
 }
 
 func NewPoint(x, y int) *Point {
