@@ -530,7 +530,11 @@ func (m *Manager) ServeSectionData(w http.ResponseWriter, r *http.Request) {
 // TODO: worry about hashing and stuff
 func (m *Manager) LoadUser(username string) (User, error) {
 	var user User
-	cmdReturn := m.redis.HGetAll(*m.ctx, fmt.Sprintf("user:%s", username))
+	key := fmt.Sprintf("user:%s", username)
+	if res, err := m.redis.Exists(*m.ctx, key).Result(); err != nil || res == 0 {
+		return User{}, fmt.Errorf("User does not exist: %s", username)
+	}
+	cmdReturn := m.redis.HGetAll(*m.ctx, key)
 
 	if err := cmdReturn.Scan(&user); err != nil {
 		return User{}, err

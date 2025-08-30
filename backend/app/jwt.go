@@ -61,11 +61,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, m *Manager) {
 		tokenString, err := createToken(u.Username)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Errorf("Could not create token for username %s", u.Username)
+			log.Println("Could not create token for username", u.Username)
 		}
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, tokenString)
 	} else {
+		if err != nil {
+			log.Println("error during auth:", err)
+		} else {
+			log.Println("error during auth: invalid credentials")
+		}
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, "Invalid credentials")
 	}
