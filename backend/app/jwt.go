@@ -97,11 +97,12 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request, manager *Manager,
 }
 
 type ImgLoadInstructions struct {
-	Path string `json:"path"`
-	X    int    `json:"x"`
-	Y    int    `json:"y"`
-	W    int    `json:"w"`
-	H    int    `json:"h"`
+	Path       string `json:"path"`
+	X          int    `json:"x"`
+	Y          int    `json:"y"`
+	W          int    `json:"w"`
+	H          int    `json:"h"`
+	PositionId string `json:"positionId"`
 }
 
 func getImageFromFilePath(filePath string) (image.Image, error) {
@@ -114,7 +115,7 @@ func getImageFromFilePath(filePath string) (image.Image, error) {
 	return image, err
 }
 
-func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
+func LoadImg(w http.ResponseWriter, r *http.Request, m *Manager) {
 	decoder := json.NewDecoder(r.Body)
 	var payload ImgLoadInstructions
 	if err := decoder.Decode(&payload); err != nil {
@@ -150,7 +151,24 @@ func LoadImg(w http.ResponseWriter, r *http.Request, manager *Manager) {
 		}
 	}
 
-	manager.PutImage(image, payload.X, payload.Y)
+	m.PutImage(image, payload.X, payload.Y)
+
+	// register new positionId at center of img
+	if payload.PositionId != "" {
+		center := *NewPoint(
+			payload.X+image.Bounds().Dx()/2,
+			payload.Y+image.Bounds().Dy()/2,
+		)
+		bytes, err := json.Marshal(center)
+		if err != nil {
+			log.Println("could not marshal position", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		m.positions[payload.PositionId] = center
+		m.redis.Set(*m.ctx, REDIS_KEYS.POSITION(payload.PositionId), bytes, 0)
+		m.redis.SAdd(*m.ctx, REDIS_KEYS.POS_IDS, payload.PositionId)
+	}
 }
 
 type ColorUpdate struct {
