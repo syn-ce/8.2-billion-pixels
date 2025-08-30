@@ -66,7 +66,7 @@ func main() {
 
 func initRedisFromScratch(m *Manager) {
 	m.redis.FlushDB(*m.ctx)
-	bitsPerColor := 4
+	bitsPerColor := 6
 	nrCols := 5
 	nrRows := 5
 	secWidth := 1000
@@ -74,9 +74,16 @@ func initRedisFromScratch(m *Manager) {
 	totalWidth := secWidth * nrCols
 	totalHeight := secHeight * nrRows
 	startTopLeft := NewPoint(int(-math.Floor(float64(totalWidth)/2.0)), int(-math.Floor(float64(totalHeight)/2.0)))
-	colors := []*Color{NewColor(255, 255, 255), NewColor(0, 0, 0), NewColor(247, 174, 248), NewColor(179, 136, 235),
-		NewColor(128, 147, 241), NewColor(114, 221, 247), NewColor(244, 244, 237), NewColor(219, 207, 176),
-		NewColor(115, 171, 132)}
+	colors := []*Color{
+		FromHex("#ffffff"), FromHex("#5ba675"), FromHex("#6bc96c"), FromHex("#abdd64"),
+		FromHex("#fcef8d"), FromHex("#ffb879"), FromHex("#ea6262"), FromHex("#cc425e"),
+		FromHex("#a32858"), FromHex("#751756"), FromHex("#390947"), FromHex("#611851"),
+		FromHex("#873555"), FromHex("#a6555f"), FromHex("#c97373"), FromHex("#f2ae99"),
+		FromHex("#ffc3f2"), FromHex("#ee8fcb"), FromHex("#d46eb3"), FromHex("#873e84"),
+		FromHex("#1f102a"), FromHex("#4a3052"), FromHex("#7b5480"), FromHex("#a6859f"),
+		FromHex("#d9bdc8"), FromHex("#aee2ff"), FromHex("#8db7ff"), FromHex("#6d80fa"),
+		FromHex("#8465ec"), FromHex("#834dc4"), FromHex("#7d2da0"), FromHex("#4e187c"),
+	}
 
 	sections := SplitIntoSections(*startTopLeft, secWidth, secHeight, nrRows, nrCols)
 	colorProvider := NewColorProvider(bitsPerColor, colors...)

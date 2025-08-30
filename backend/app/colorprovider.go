@@ -18,6 +18,15 @@ func NewColor(r, g, b byte) *Color {
 	return &Color{r, g, b}
 }
 
+func FromHex(hexValue string) *Color {
+	color, err := ParseHexColorFast(hexValue)
+
+	if err != nil {
+		return NewColor(0, 0, 0)
+	}
+	return &color
+}
+
 func FromColor(c color.Color) *Color {
 	r, g, b, _ := c.RGBA()
 	return NewColor(byte(r), byte(g), byte(b))

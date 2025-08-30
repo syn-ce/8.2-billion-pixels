@@ -89,6 +89,7 @@ func (m *Manager) SaveSectionsMeta() error {
 }
 
 func (m *Manager) loadPositions() error {
+	log.Println("loading positions")
 	positionIds, err := m.redis.SMembers(*m.ctx, REDIS_KEYS.POS_IDS).Result()
 	if err != nil {
 		log.Printf("error when getting key %s %v\n", REDIS_KEYS.POS_IDS, err)
@@ -129,6 +130,7 @@ func (m *Manager) SavePositions() error {
 }
 
 func (m *Manager) loadColorProvider() error {
+	log.Println("loading color provider")
 	bitsPerColor, err := m.redis.Get(*m.ctx, REDIS_KEYS.BITS_PER_COLOR).Int()
 	if err != nil {
 		log.Println("error when getting key ", err)

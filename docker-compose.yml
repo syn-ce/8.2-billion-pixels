@@ -7,8 +7,8 @@ services:
             - '--providers.docker.exposedbydefault=false'
             - '--entrypoints.web.address=:80'
         ports:
-            # The Web UI (enabled by --api.insecure=true)
             - '9876:80'
+            # The Web UI (enabled by --api.insecure=true)
             - '9000:8080'
         volumes:
             # So that Traefik can listen to Docker events
