@@ -38,7 +38,11 @@ func setupAPI() (*mux.Router, error) {
 	})
 
 	//initRedisFromScratch(manager)
-	for err := manager.LoadFromRedis(); err != nil; {
+	for {
+		err := manager.LoadFromRedis()
+		if err == nil {
+			break
+		}
 		log.Println(err)
 		log.Println("Can't load data from redis. Retrying in 2 seconds...")
 		time.Sleep(2 * time.Second)
