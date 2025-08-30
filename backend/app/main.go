@@ -33,6 +33,9 @@ func setupAPI() (*mux.Router, error) {
 	r.HandleFunc("/load-img", func(w http.ResponseWriter, r *http.Request) {
 		AuthorizedHandler(w, r, manager, LoadImg)
 	})
+	r.HandleFunc("/delete-pos-id", func(w http.ResponseWriter, r *http.Request) {
+		AuthorizedHandler(w, r, manager, DeletePositionId)
+	})
 	r.HandleFunc("/update-colors", func(w http.ResponseWriter, r *http.Request) {
 		AuthorizedHandler(w, r, manager, UpdateColorsHandler)
 	})
@@ -87,8 +90,8 @@ func initRedisFromScratch(m *Manager) {
 
 	sections := SplitIntoSections(*startTopLeft, secWidth, secHeight, nrRows, nrCols)
 	colorProvider := NewColorProvider(bitsPerColor, colors...)
-	positions := make(map[string]Point)
-	positions["example"] = *NewPoint(100, 200)
+	positions := make(map[string]PositionInfo)
+	positions["example"] = PositionInfo{*NewPoint(100, 200), PositionImageInfo{}}
 	log.Printf("%d sections\n", len(sections))
 	log.Printf("%d colors\n", len(colorProvider.colors))
 	log.Printf("%d positions\n", len(positions))

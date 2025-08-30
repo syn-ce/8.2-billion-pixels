@@ -39,7 +39,7 @@ type Manager struct {
 	ctx            *context.Context
 	sectionSubs    map[string]map[*Client]struct{}
 	sections       []*Section
-	positions      map[string]Point
+	positions      map[string]PositionInfo
 	colorProvider  *ColorProvider
 }
 
@@ -96,19 +96,19 @@ func (m *Manager) loadPositions() error {
 		return err
 	}
 	log.Printf("loading %d positions", len(positionIds))
-	positions := make(map[string]Point)
+	positions := make(map[string]PositionInfo)
 	for _, id := range positionIds {
 		binary, err := m.redis.Get(*m.ctx, REDIS_KEYS.POSITION(id)).Bytes()
 		if err != nil {
 			log.Printf("error when getting key %s %v\n", REDIS_KEYS.SEC_META(id), err)
 			return err
 		}
-		var point = Point{}
-		if err := json.Unmarshal(binary, &point); err != nil {
+		var info = PositionInfo{}
+		if err := json.Unmarshal(binary, &info); err != nil {
 			log.Println("could not unmarshal", err)
 			return err
 		}
-		positions[id] = point
+		positions[id] = info
 	}
 
 	m.positions = positions
@@ -449,9 +449,9 @@ func (m *Manager) getPosition(posId string) Point {
 	pos, posExists := m.positions[posId]
 
 	if !posExists {
-		pos = *NewPoint(0, 0)
+		return *NewPoint(0, 0)
 	}
-	return pos
+	return pos.Center
 }
 
 func (m *Manager) ServeSectionsMeta(w http.ResponseWriter, r *http.Request) {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"image/draw"
 	_ "image/png"
 )
 
@@ -105,6 +106,17 @@ type ImgLoadInstructions struct {
 	PositionId string `json:"positionId"`
 }
 
+type PositionImageInfo struct {
+	TopLeft Point `json:"topLeft"`
+	W       int   `json:"w"`
+	H       int   `json:"h"`
+}
+
+type PositionInfo struct {
+	Center    Point             `json:"center"`
+	ImageInfo PositionImageInfo `json:"imageInfo"`
+}
+
 func getImageFromFilePath(filePath string) (image.Image, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -159,15 +171,41 @@ func LoadImg(w http.ResponseWriter, r *http.Request, m *Manager) {
 			payload.X+image.Bounds().Dx()/2,
 			payload.Y+image.Bounds().Dy()/2,
 		)
-		bytes, err := json.Marshal(center)
+		topLeft := *NewPoint(payload.X, payload.Y)
+		posInfo := PositionInfo{center, PositionImageInfo{topLeft, image.Bounds().Dx(), image.Bounds().Dy()}}
+		bytes, err := json.Marshal(posInfo)
 		if err != nil {
 			log.Println("could not marshal position", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		m.positions[payload.PositionId] = center
+		m.positions[payload.PositionId] = posInfo
 		m.redis.Set(*m.ctx, REDIS_KEYS.POSITION(payload.PositionId), bytes, 0)
 		m.redis.SAdd(*m.ctx, REDIS_KEYS.POS_IDS, payload.PositionId)
+	}
+}
+
+// deletes positionId and clears the associated image (if it exists) with default color
+func DeletePositionId(w http.ResponseWriter, r *http.Request, m *Manager) {
+	posId := r.URL.Query().Get("position")
+	pos, posExists := m.positions[posId]
+
+	if !posExists {
+		log.Println("no")
+		return
+	}
+
+	delete(m.positions, posId)
+	m.redis.Del(*m.ctx, REDIS_KEYS.POSITION(posId))
+	m.redis.SRem(*m.ctx, REDIS_KEYS.POS_IDS, posId)
+
+	log.Printf("Deleting position with posId=%s : %v", posId, pos)
+
+	// clear image from canvas
+	if pos.ImageInfo.W != 0 && pos.ImageInfo.H != 0 {
+		img := image.NewRGBA(image.Rect(0, 0, pos.ImageInfo.W, pos.ImageInfo.H))
+		draw.Draw(img, img.Bounds(), &image.Uniform{m.colorProvider.colors[0]}, image.Point{0, 0}, draw.Src)
+		m.PutImage(img, pos.ImageInfo.TopLeft.X, pos.ImageInfo.TopLeft.Y)
 	}
 }
 

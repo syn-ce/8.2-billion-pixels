@@ -14,6 +14,10 @@ type Color struct {
 	R, G, B, A byte
 }
 
+func (c *Color) RGBA() (uint32, uint32, uint32, uint32) {
+	return uint32(c.R) * 257, uint32(c.G) * 257, uint32(c.B) * 257, uint32(c.A) * 257
+}
+
 func NewRGBAColor(r, g, b, a byte) *Color {
 	return &Color{r, g, b, a}
 }
