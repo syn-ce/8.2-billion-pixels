@@ -591,8 +591,8 @@ export class SectionCanvas {
         this.normScale = newScale
 
         const translation: [number, number] = [
-            Math.round(diffToCenter[0] * (clampedFactor - 1)),
-            Math.round(diffToCenter[1] * (clampedFactor - 1)),
+            diffToCenter[0] * (clampedFactor - 1),
+            diffToCenter[1] * (clampedFactor - 1),
         ]
         this.applyOffsetDiff(translation)
     }
