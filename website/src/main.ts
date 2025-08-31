@@ -43,9 +43,16 @@ const colorPicker = new ColorPicker(
 
 const getInitialPositionId = (): string => {
     // Get id as url param "?position=<id>"
-    const positionIdentifier = new URLSearchParams(
-        document.location.search
-    ).get('position')
+    // If not given, try lookup in localStorage -> persists initial position across
+    // page reloads
+    const positionIdentifier =
+        new URLSearchParams(document.location.search).get('position') ??
+        localStorage.getItem('position')
+
+    if (positionIdentifier !== null) {
+        localStorage.setItem('position', positionIdentifier)
+    }
+
     return positionIdentifier ?? ''
 }
 
