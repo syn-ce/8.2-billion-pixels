@@ -188,7 +188,7 @@ func LoadImg(w http.ResponseWriter, r *http.Request, m *Manager) {
 
 // deletes positionId and clears the associated image (if it exists) with default color
 func DeletePositionId(w http.ResponseWriter, r *http.Request, m *Manager) {
-	posId := r.URL.Query().Get("position")
+	posId := r.URL.Query().Get("pos")
 	pos, posExists := m.positions[posId]
 
 	if !posExists {

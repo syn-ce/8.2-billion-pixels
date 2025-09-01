@@ -13,7 +13,7 @@ export const fetchColorChoices = async () => {
 
 export const fetchSectionsConfig = async (initialPositionId: string) => {
     const res: SectionConfig = await (
-        await fetch(`${URL}/sections?position=${initialPositionId}`)
+        await fetch(`${URL}/sections?pos=${initialPositionId}`)
     ).json()
     // We don't really need different color-depths across sections, and this implementation should make it fairly straight forward to add it if needed
     return res

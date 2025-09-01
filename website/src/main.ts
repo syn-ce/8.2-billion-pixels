@@ -46,11 +46,11 @@ const getInitialPositionId = (): string => {
     // If not given, try lookup in localStorage -> persists initial position across
     // page reloads
     const positionIdentifier =
-        new URLSearchParams(document.location.search).get('position') ??
-        localStorage.getItem('position')
+        new URLSearchParams(document.location.search).get('pos') ??
+        localStorage.getItem('pos')
 
     if (positionIdentifier !== null) {
-        localStorage.setItem('position', positionIdentifier)
+        localStorage.setItem('pos', positionIdentifier)
     }
 
     return positionIdentifier ?? ''

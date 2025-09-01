@@ -454,7 +454,7 @@ func (m *Manager) getPosition(posId string) Point {
 }
 
 func (m *Manager) ServeSectionsMeta(w http.ResponseWriter, r *http.Request) {
-	posId := r.URL.Query().Get("position")
+	posId := r.URL.Query().Get("pos")
 	if posId != "" {
 		log.Println("Querying for posId:", posId)
 	}
