@@ -59,7 +59,6 @@ func (client *Client) WriteMsgs() {
 				client.connection.WriteMessage(websocket.CloseMessage, nil)
 				return
 			}
-			log.Println("Client read!")
 			if err := client.connection.WriteMessage(websocket.TextMessage, json); err != nil {
 				log.Println("could not write message to client:", err)
 			}

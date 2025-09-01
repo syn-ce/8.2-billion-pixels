@@ -167,6 +167,7 @@ func LoadImg(w http.ResponseWriter, r *http.Request, m *Manager) {
 
 	// register new positionId at center of img
 	if payload.PositionId != "" {
+		log.Println("Registering posId for loaded img:", payload.PositionId)
 		center := *NewPoint(
 			payload.X+image.Bounds().Dx()/2,
 			payload.Y+image.Bounds().Dy()/2,
@@ -191,7 +192,6 @@ func DeletePositionId(w http.ResponseWriter, r *http.Request, m *Manager) {
 	pos, posExists := m.positions[posId]
 
 	if !posExists {
-		log.Println("no")
 		return
 	}
 

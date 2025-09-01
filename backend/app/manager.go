@@ -141,6 +141,7 @@ func (m *Manager) loadColorProvider() error {
 		log.Println("error when getting key ", err)
 		return err
 	}
+	log.Printf("loading %d colors", len(colorSet))
 
 	m.colorProvider = NewColorProvider(bitsPerColor)
 
@@ -342,7 +343,7 @@ func (m *Manager) setupEventHandlers() {
 }
 
 func (manager *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
-	log.Println("New connection")
+	log.Println("New client")
 	// Upgrade http request
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -384,7 +385,6 @@ func (m *Manager) removeClient(client *Client) {
 }
 
 func (m *Manager) routeEvent(event SocketEvent, c *Client) error {
-	log.Println(event.Type)
 	if handler, ok := m.eventHandlers[event.Type]; ok {
 		if err := handler(event, c); err != nil {
 			return err
@@ -424,7 +424,6 @@ func (m *Manager) ListenForEvents() {
 			} else {
 				log.Println("unknown channel", msg.Channel)
 			}
-			log.Println("Read evt!")
 			//case <-time.After(60 * time.Second):
 			//	log.Println("Waiting...")
 		}
@@ -455,9 +454,10 @@ func (m *Manager) getPosition(posId string) Point {
 }
 
 func (m *Manager) ServeSectionsMeta(w http.ResponseWriter, r *http.Request) {
-	log.Println("serving sections metadata")
-
 	posId := r.URL.Query().Get("position")
+	if posId != "" {
+		log.Println("Querying for posId:", posId)
+	}
 	pos := m.getPosition(posId)
 
 	sectionsMeta := SectionsMeta{m.getSectionsMetaData(), m.colorProvider.bitsPerColor, pos}
@@ -480,7 +480,6 @@ type ColorChoice = struct {
 }
 
 func (m *Manager) ServeColors(w http.ResponseWriter, r *http.Request) {
-	log.Println("serving colors")
 	colorChoices := make([]ColorChoice, len(m.colorProvider.colors))
 
 	idx := 0
