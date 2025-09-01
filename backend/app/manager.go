@@ -514,7 +514,10 @@ func (m *Manager) getCompressSectionData(secId string) ([]byte, error) {
 
 func (m *Manager) ServeSectionData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+
+	// log served section, count how often sections have been served
 	log.Println("S", vars["secId"])
+	m.redis.HIncrBy(*m.ctx, "section_counts", vars["secId"], 1)
 
 	data, err := m.getCompressSectionData(vars["secId"])
 	if err != nil {
